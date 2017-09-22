@@ -1,14 +1,11 @@
-CREATE TYPE point_status AS ENUM ('pending', 'pulled', 'running', 'failed', 'completed');
-
-
 CREATE TABLE points (
-    id          SERIAL NOT NULL,
-    project     VARCHAR(40),
-    status point_status,
+    id              SERIAL NOT NULL,
+    project         VARCHAR(40),
+    status          SMALLINT,
 
-    coordinate      TEXT,
-    metric_value    DOUBLE PRECISION,
-    metadata        TEXT,
+    coordinate      TEXT NOT NULL DEFAULT '',
+    metric_value    TEXT NOT NULL DEFAULT '',
+    metadata        TEXT NOT NULL DEFAULT '',
 
     PRIMARY KEY (project, id)
 );
