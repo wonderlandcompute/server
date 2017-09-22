@@ -5,7 +5,6 @@ import (
 	"testing"
 )
 
-
 func checkTestErr(err error, t *testing.T) {
 	if err != nil {
 		t.Log(err)
@@ -23,11 +22,11 @@ func TestPointCRUD(t *testing.T) {
 	}
 
 	point := &Point{
-		Project     :  "test_project",
-		Status      :  Point_PENDING,
-		Coordinate  :  "[0,0]",
-		MetricValue :  "9.0",
-		Metadata    :  `{"a": 123}`,
+		Project:     "test_project",
+		Status:      Point_PENDING,
+		Coordinate:  "[0,0]",
+		MetricValue: "9.0",
+		Metadata:    `{"a": 123}`,
 	}
 
 	created_point, err := storage.CreatePoint(point)
