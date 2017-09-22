@@ -2,23 +2,28 @@ package main
 
 import (
 	"encoding/base64"
-	"fmt"
 	"time"
 	"os"
 	"log"
 	"github.com/dgrijalva/jwt-go"
 )
 
+const usage = `
+	Usage: make_token.go <username> <project>
+	Set base64-encoded token to OPTIMUS_JWT_KEY_BASE64 environment variable
+`
+
 func main() {
 	key_base64 := os.Getenv("OPTIMUS_JWT_KEY_BASE64")
 	key, err := base64.StdEncoding.DecodeString(key_base64)
-	if err != nil {
+	if err != nil || len(key_base64) != 8 {
+		log.Print(usage)
 		log.Fatal(err)
 	}
 
     args := os.Args[1:]
     if len(args) != 2 {
-    	log.Fatal("Usage: make_token.go <username> <project>")
+    	log.Fatal(usage)
     }
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -34,5 +39,5 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(tokenString)
+	log.Print("Token:", tokenString)
 }
