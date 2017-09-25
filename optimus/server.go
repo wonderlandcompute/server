@@ -1,10 +1,10 @@
 package optimus
 
 import (
+	"fmt"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"fmt"
 )
 
 type Server struct {
@@ -35,7 +35,14 @@ func (s *Server) CreatePoint(ctx context.Context, in *Point) (*Point, error) {
 }
 
 func (s *Server) GetPoint(ctx context.Context, in *RequestWithId) (*Point, error) {
-	return nil, nil
+	user := getAuthUserFromContext(ctx)
+
+	point, err := s.Storage.GetPoint(in.Id, user.Project)
+	if err != nil {
+		return nil, detailedInternalError(err)
+	}
+
+	return point, nil
 }
 
 func (s *Server) ListPoints(ctx context.Context, in *ListPointsRequest) (*ListOfPoints, error) {

@@ -60,3 +60,33 @@ func (storage *OptimusStorage) CreatePoint(point *Point) (*Point, error) {
 	}
 	return created_point, err
 }
+
+func (storage *OptimusStorage) GetPoint(id uint64, project string) (*Point, error) {
+	tx, err := storage.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	point := &Point{}
+	err = tx.QueryRow(`
+		SELECT id, project, status, coordinate, metric_value, metadata FROM points
+		WHERE id=$1 AND project=$2;`,
+		id, project,
+	).Scan(
+		&point.Id,
+		&point.Project,
+		&point.Status,
+		&point.Coordinate,
+		&point.MetricValue,
+		&point.Metadata,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+	}
+	return point, err
+}
