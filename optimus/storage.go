@@ -30,7 +30,7 @@ func (storage *OptimusStorage) Connect() error {
 	return err
 }
 
-func (storage *OptimusStorage) CreatePoint(point *Point) (*Point, error) {
+func (storage *OptimusStorage) CreatePoint(point *Point, creator User) (*Point, error) {
 	tx, err := storage.db.Begin()
 	if err != nil {
 		return nil, err
@@ -38,10 +38,11 @@ func (storage *OptimusStorage) CreatePoint(point *Point) (*Point, error) {
 
 	created_point := &Point{}
 	err = tx.QueryRow(`
-		INSERT INTO points (project, status, coordinate, metric_value, metadata)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO points (project, status, coordinate, metric_value, metadata, creator)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, project, status, coordinate, metric_value, metadata;`,
 		point.Project, point.Status, point.Coordinate, point.MetricValue, point.Metadata,
+		creator.Username,
 	).Scan(
 		&created_point.Id,
 		&created_point.Project,
@@ -126,4 +127,45 @@ func (storage *OptimusStorage) ListPoints(project string) (*ListOfPoints, error)
 
 	err = rows.Err()
 	return ret, err
+}
+
+func (storage *OptimusStorage) UpdatePoint(point *Point) (*Point, error) {
+	tx, err := storage.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	result_point := &Point{}
+	err = tx.QueryRow(`
+		UPDATE points
+		SET
+			status=$1,
+			metric_value=$2,
+			metadata=$3
+		WHERE id=$4 and project=$5
+		RETURNING id, project, status, coordinate, metric_value, metadata;`,
+		point.Status,
+		point.MetricValue,
+		point.Metadata,
+		point.Id,
+		point.Project,
+	).Scan(
+		&result_point.Id,
+		&result_point.Project,
+		&result_point.Status,
+		&result_point.Coordinate,
+		&result_point.MetricValue,
+		&result_point.Metadata,
+	)
+	if err != nil {
+		return result_point, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		return result_point, err
+	}
+
+	return result_point, err
+
 }

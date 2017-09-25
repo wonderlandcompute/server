@@ -41,6 +41,17 @@ func TestGRPCPointCRUD(t *testing.T) {
 		t.Fail()
 	}
 
+	created_point.Status = Point_FAILED
+	created_point.MetricValue = "metric_test"
+	created_point.Metadata = "meta_test"
+
+	updated_point, err := c.ModifyPoint(ctx, created_point)
+	checkTestErr(err, t)
+
+	if !checkPointsEqual(created_point, updated_point) {
+		t.Fail()
+	}
+
 	created_point, err = c.CreatePoint(ctx, &Point{Coordinate: "second"})
 	checkTestErr(err, t)
 

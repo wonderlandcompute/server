@@ -26,7 +26,7 @@ func (s *Server) CreatePoint(ctx context.Context, in *Point) (*Point, error) {
 	user := getAuthUserFromContext(ctx)
 	in.Project = user.Project
 
-	created_point, err := s.Storage.CreatePoint(in)
+	created_point, err := s.Storage.CreatePoint(in, user)
 	if err != nil {
 		return nil, detailedInternalError(err)
 	}
@@ -56,5 +56,19 @@ func (s *Server) ListPoints(ctx context.Context, in *ListPointsRequest) (*ListOf
 }
 
 func (s *Server) ModifyPoint(ctx context.Context, in *Point) (*Point, error) {
+	user := getAuthUserFromContext(ctx)
+	if user.Project != in.Project {
+		return nil, grpc.Errorf(codes.PermissionDenied, "point.Project ≠ user.Project")
+	}
+
+	ret, err := s.Storage.UpdatePoint(in)
+	if err != nil {
+		return nil, detailedInternalError(err)
+	}
+
+	return ret, nil
+}
+
+func (s *Server) PullPendingPoints(ctx context.Context, in *ListPointsRequest) (*ListOfPoints, error) {
 	return nil, nil
 }

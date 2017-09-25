@@ -29,7 +29,7 @@ func TestPointCRUD(t *testing.T) {
 		Metadata:    `{"a": 123}`,
 	}
 
-	created_point, err := storage.CreatePoint(point)
+	created_point, err := storage.CreatePoint(point, User{Username: "tester"})
 	checkTestErr(err, t)
 
 	if created_point == nil {
