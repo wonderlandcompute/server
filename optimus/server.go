@@ -2,6 +2,9 @@ package optimus
 
 import (
 	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"fmt"
 )
 
 type Server struct {
@@ -9,12 +12,26 @@ type Server struct {
 	SecretKey []byte
 }
 
+func detailedInternalError(err error) error {
+	return grpc.Errorf(
+		codes.Internal,
+		fmt.Sprintf("Error creating point: %v", err),
+	)
+}
+
 func (s *Server) Init() {
 }
 
 func (s *Server) CreatePoint(ctx context.Context, in *Point) (*Point, error) {
 	user := getAuthUserFromContext(ctx)
-	return &Point{Coordinate: user.Username}, nil
+	in.Project = user.Project
+
+	created_point, err := s.Storage.CreatePoint(in)
+	if err != nil {
+		return nil, detailedInternalError(err)
+	}
+
+	return created_point, nil
 }
 
 func (s *Server) GetPoint(ctx context.Context, in *RequestWithId) (*Point, error) {
