@@ -90,3 +90,40 @@ func (storage *OptimusStorage) GetPoint(id uint64, project string) (*Point, erro
 	}
 	return point, err
 }
+
+func (storage *OptimusStorage) ListPoints(project string) (*ListOfPoints, error) {
+	query := `
+		SELECT id, project, status, coordinate, metric_value, metadata
+		FROM points
+		WHERE project=$1;
+	`
+
+	rows, err := storage.db.Query(query, project)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	ret := &ListOfPoints{Points: []*Point{}}
+
+	for rows.Next() {
+		point := &Point{}
+
+		err = rows.Scan(
+			&point.Id,
+			&point.Project,
+			&point.Status,
+			&point.Coordinate,
+			&point.MetricValue,
+			&point.Metadata,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+		ret.Points = append(ret.Points, point)
+	}
+
+	err = rows.Err()
+	return ret, err
+}

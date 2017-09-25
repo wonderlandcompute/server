@@ -40,4 +40,14 @@ func TestGRPCPointCRUD(t *testing.T) {
 	if !checkPointsEqual(created_point, read_point) {
 		t.Fail()
 	}
+
+	created_point, err = c.CreatePoint(ctx, &Point{Coordinate: "second"})
+	checkTestErr(err, t)
+
+	all_points, err := c.ListPoints(ctx, &ListPointsRequest{})
+	checkTestErr(err, t)
+
+	if len(all_points.Points) != 2 {
+		t.Fail()
+	}
 }

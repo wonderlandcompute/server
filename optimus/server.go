@@ -46,7 +46,13 @@ func (s *Server) GetPoint(ctx context.Context, in *RequestWithId) (*Point, error
 }
 
 func (s *Server) ListPoints(ctx context.Context, in *ListPointsRequest) (*ListOfPoints, error) {
-	return nil, nil
+	user := getAuthUserFromContext(ctx)
+	ret, err := s.Storage.ListPoints(user.Project)
+	if err != nil {
+		return nil, detailedInternalError(err)
+	}
+
+	return ret, nil
 }
 
 func (s *Server) ModifyPoint(ctx context.Context, in *Point) (*Point, error) {
