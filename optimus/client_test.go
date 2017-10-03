@@ -61,4 +61,11 @@ func TestGRPCPointCRUD(t *testing.T) {
 	if len(all_points.Points) != 2 {
 		t.Fail()
 	}
+
+	pulled_points, err := c.PullPendingPoints(ctx, &ListPointsRequest{HowMany: 2})
+	checkTestErr(err, t)
+
+	if len(pulled_points.Points) != 1 {
+		t.Fail()
+	}
 }

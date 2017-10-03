@@ -12,3 +12,5 @@ CREATE TABLE points (
 
     PRIMARY KEY (project, id)
 );
+
+CREATE INDEX status_idx ON points (status);

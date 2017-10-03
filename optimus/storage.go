@@ -167,5 +167,51 @@ func (storage *OptimusStorage) UpdatePoint(point *Point) (*Point, error) {
 	}
 
 	return result_point, err
+}
 
+func (storage *OptimusStorage) PullPoints(how_many uint32) ([]*Point, error) {
+	tx, err := storage.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	result_points := []*Point{}
+	rows, err := tx.Query(`
+		WITH pulled_pts as (
+			SELECT id, project
+			FROM points
+			WHERE status=$1
+			LIMIT $2
+			FOR UPDATE SKIP LOCKED
+		)
+		UPDATE points pts
+		SET status=$3
+		FROM pulled_pts
+		WHERE pulled_pts.id=pts.id and pulled_pts.project=pts.project
+		RETURNING pts.id, pts.project, pts.status, pts.coordinate, pts.metric_value, pts.metadata;`,
+		Point_PENDING,
+		how_many,
+		Point_PULLED,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		point := Point{}
+		err = rows.Scan(&point.Id, &point.Project, &point.Status, &point.Coordinate, &point.MetricValue, &point.Metadata)
+		if err != nil {
+			return nil, err
+		}
+
+		result_points = append(result_points, &point)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	return result_points, err
 }

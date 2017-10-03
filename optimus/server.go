@@ -70,5 +70,10 @@ func (s *Server) ModifyPoint(ctx context.Context, in *Point) (*Point, error) {
 }
 
 func (s *Server) PullPendingPoints(ctx context.Context, in *ListPointsRequest) (*ListOfPoints, error) {
-	return nil, nil
+	pts, err := s.Storage.PullPoints(in.HowMany)
+	if err != nil {
+		return nil, detailedInternalError(err)
+	}
+
+	return &ListOfPoints{Points: pts}, nil
 }
