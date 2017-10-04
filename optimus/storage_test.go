@@ -1,7 +1,6 @@
 package optimus
 
 import (
-	"os"
 	"testing"
 )
 
@@ -13,8 +12,8 @@ func checkTestErr(err error, t *testing.T) {
 }
 
 func TestPointCRUD(t *testing.T) {
-	db_uri := os.Getenv("OPTIMUS_TEST_DB")
-	storage, err := NewOptimusStorage(db_uri)
+	initTestsConfig()
+	storage, err := NewOptimusStorage(TestsConfig.DatabaseURI)
 	checkTestErr(err, t)
 
 	if storage == nil {

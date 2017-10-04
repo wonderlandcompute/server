@@ -1,16 +1,63 @@
 package optimus
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/credentials"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
+	"log"
+	"os"
 	"testing"
 )
 
-const (
-	address = "localhost:50051"
-	token   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MjE5ODc0ODYsIm5iZiI6MTUwNjM0OTA4Niwib3B0aW11c19wcm9qZWN0Ijoic2hpcC1zaGllbGQiLCJzdWIiOiJzYXNoYSJ9.4D7N3sMDLKm-mw6LPG7C1FZKOUbyGIbqm7Ic5I5BYqo"
-)
+type OptimusTestsConfig struct {
+	ClientCert  string `yaml:"client_cert"`
+	ClientKey   string `yaml:"client_key"`
+	CACert      string `yaml:"ca_cert"`
+	ConnectTo   string `yaml:"connect_to"`
+	DatabaseURI string `yaml:"db_uri"`
+}
+
+var TestsConfig *OptimusTestsConfig
+
+func initTestsConfig() {
+	TestsConfig = &OptimusTestsConfig{}
+	config_path := os.Getenv("OPTIMUS_TESTS_CONFIG")
+	content, err := ioutil.ReadFile(config_path)
+	if err != nil {
+		log.Fatalf("Error loading config: %v", err)
+	}
+
+	err = yaml.Unmarshal([]byte(content), TestsConfig)
+	if err != nil {
+		log.Fatalf("Error parsing config: %v", err)
+	}
+
+}
+
+func getTransportCredentials() (*credentials.TransportCredentials, error) {
+	peerCert, err := tls.LoadX509KeyPair(TestsConfig.ClientCert, TestsConfig.ClientKey)
+	if err != nil {
+		return nil, err
+	}
+
+	caCert, err := ioutil.ReadFile(TestsConfig.CACert)
+	if err != nil {
+		return nil, err
+	}
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+
+	tc := credentials.NewTLS(&tls.Config{
+		Certificates: []tls.Certificate{peerCert},
+		RootCAs:      caCertPool,
+	})
+
+	return &tc, nil
+}
 
 func checkPointsEqual(a *Point, b *Point) bool {
 	return (a.Project == b.Project) &&
@@ -22,14 +69,18 @@ func checkPointsEqual(a *Point, b *Point) bool {
 }
 
 func TestGRPCPointCRUD(t *testing.T) {
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	initTestsConfig()
+	tc, err := getTransportCredentials()
+	if err != nil {
+		t.Fail()
+	}
+
+	conn, err := grpc.Dial(TestsConfig.ConnectTo, grpc.WithTransportCredentials(*tc))
 	checkTestErr(err, t)
 	defer conn.Close()
 	c := NewOptimusClient(conn)
 
 	ctx := context.Background()
-	md := metadata.Pairs("token", token)
-	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	created_point, err := c.CreatePoint(ctx, &Point{})
 	checkTestErr(err, t)

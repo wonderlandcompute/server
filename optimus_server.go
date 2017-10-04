@@ -1,45 +1,81 @@
 package main
 
 import (
-	"github.com/sirupsen/logrus"
+	"crypto/tls"
+	"crypto/x509"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	"github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	"github.com/sirupsen/logrus"
 	"gitlab.com/lambda-hse/optimus/optimus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
-	"encoding/base64"
 )
 
-const (
-	port = ":50051"
-)
+type OptimusServerConfig struct {
+	ServerCert  string `yaml:"server_cert"`
+	ServerKey   string `yaml:"server_key"`
+	CACert      string `yaml:"ca_cert"`
+	ListenOn    string `yaml:"listen_on"`
+	DatabaseURI string `yaml:"db_uri"`
+}
+
+var Config *OptimusServerConfig
+
+func getTransportCredentials() (*credentials.TransportCredentials, error) {
+	peerCert, err := tls.LoadX509KeyPair(Config.ServerCert, Config.ServerKey)
+	if err != nil {
+		return nil, err
+	}
+
+	caCert, err := ioutil.ReadFile(Config.CACert)
+	if err != nil {
+		return nil, err
+	}
+
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+	tc := credentials.NewTLS(&tls.Config{
+		Certificates: []tls.Certificate{peerCert},
+		ClientCAs:    caCertPool,
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+	})
+
+	return &tc, nil
+}
 
 func main() {
-	key_base64 := "o/nSETEx"
-	key, err := base64.StdEncoding.DecodeString(key_base64)
+	Config = &OptimusServerConfig{}
+	config_path := os.Getenv("OPTIMUS_CONFIG")
+	content, err := ioutil.ReadFile(config_path)
+	if err != nil {
+		log.Fatalf("Error loading config: %v", err)
+	}
+
+	err = yaml.Unmarshal([]byte(content), Config)
+	if err != nil {
+		log.Fatalf("Error parsing config: %v", err)
+	}
+
+	storage, err := optimus.NewOptimusStorage(Config.DatabaseURI)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	db_uri := os.Getenv("OPTIMUS_TEST_DB")
-	storage, err := optimus.NewOptimusStorage(db_uri)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	lis, err := net.Listen("tcp", port)
+	lis, err := net.Listen("tcp", Config.ListenOn)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
 	server := &optimus.Server{
-		Storage:      storage,
-		SecretKey:    key,
+		Storage: storage,
 	}
 	server.Init()
 
@@ -51,8 +87,13 @@ func main() {
 	}
 
 	logrusEntry := logrus.NewEntry(logger)
+	transportCredentials, err := getTransportCredentials()
+	if err != nil {
+		log.Fatalf("failed to get credentials: %v", err)
+	}
 
 	s := grpc.NewServer(
+		grpc.Creds(*transportCredentials),
 		grpc_middleware.WithUnaryServerChain(
 			grpc_ctxtags.UnaryServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
 			grpc_logrus.UnaryServerInterceptor(logrusEntry),

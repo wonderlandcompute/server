@@ -1,11 +1,11 @@
 package optimus
 
 import (
-	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/peer"
 )
 
 type User struct {
@@ -29,33 +29,24 @@ func (s *Server) AuthFuncOverride(ctx context.Context, fullMethodName string) (c
 		return ctx, nil
 	}
 
-	md, ok := metadata.FromIncomingContext(ctx)
+	peer, ok := peer.FromContext(ctx)
 	if !ok {
-		return nil, grpc.Errorf(codes.Unauthenticated, "Error validating metadata")
+		return nil, grpc.Errorf(codes.Unauthenticated, "Error processing client certificate")
 	}
-	token, ok := md["token"]
+
+	tlsInfo := peer.AuthInfo.(credentials.TLSInfo)
+	if len(tlsInfo.State.PeerCertificates) < 1 {
+		return nil, grpc.Errorf(codes.Unauthenticated, "Error processing client certificate")
+	}
+
+	cert := tlsInfo.State.PeerCertificates[0]
 	if !ok {
-		return nil, grpc.Errorf(codes.Unauthenticated, "Auth token not provided")
+		return nil, grpc.Errorf(codes.Unauthenticated, "Error processing client certificate")
 	}
 
-	parsedToken, err := jwt.Parse(token[0], func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, grpc.Errorf(codes.Unauthenticated, "Unexpected algorithm!")
-		}
-		return s.SecretKey, nil
-	})
-
-	if err != nil {
-		return nil, grpc.Errorf(codes.Unauthenticated, "Invalid auth token")
+	user := User{
+		Username: cert.Subject.CommonName,
+		Project:  cert.Subject.Organization[0],
 	}
-
-	if claims, ok := parsedToken.Claims.(jwt.MapClaims); ok && parsedToken.Valid {
-		user := User{
-			Username: claims["sub"].(string),
-			Project:  claims["optimus_project"].(string),
-		}
-		return context.WithValue(ctx, "authorized-user", user), nil
-	} else {
-		return nil, grpc.Errorf(codes.Unauthenticated, "Invalid auth token")
-	}
+	return context.WithValue(ctx, "authorized-user", user), nil
 }
