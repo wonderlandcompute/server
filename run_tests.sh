@@ -5,5 +5,7 @@ if [ -z "$OPTIMUS_TEST_DB" ]; then
     exit 1
 fi
 
-migrate -path migrations -url $OPTIMUS_TEST_DB reset
+migrate -database $OPTIMUS_TEST_DB -path migrations down
+migrate -database $OPTIMUS_TEST_DB -path migrations up
+
 cd optimus; go test -v .; cd ..

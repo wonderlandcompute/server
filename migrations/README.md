@@ -1,13 +1,8 @@
 
-Initially install `go get github.com/gemnasium/migrate`.
+We use https://github.com/mattes/migrate for migrations.
 
-Create migrations(note `\` before `?`, in zsh at least it is needed):
+To install use 
 ```
-migrate -url postgres://localhost:5432/database_name\?sslmode=disable  create initial
-```
-
-
-To perform migration:
-```
-migrate -url postgres://localhost:5432/database_name\?sslmode=disable up 1
+go get -u -d github.com/mattes/migrate/cli github.com/lib/pq
+go build -tags 'postgres' -o /usr/local/bin/migrate github.com/mattes/migrate/cli
 ```
