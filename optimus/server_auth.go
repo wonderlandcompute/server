@@ -23,7 +23,7 @@ func getAuthUserFromContext(ctx context.Context) User {
 
 func (s *Server) AuthFuncOverride(ctx context.Context, fullMethodName string) (context.Context, error) {
 	allowed_endpoints := map[string]bool{
-	// "/OptimusOptimus/CreatePoint":         true,
+	// "/OptimusOptimus/CreateJob":         true,
 	}
 	if allow, ok := allowed_endpoints[fullMethodName]; allow && ok {
 		return ctx, nil

@@ -59,16 +59,19 @@ func getTransportCredentials() (*credentials.TransportCredentials, error) {
 	return &tc, nil
 }
 
-func checkPointsEqual(a *Point, b *Point) bool {
+func checkJobsEqual(a *Job, b *Job) bool {
 	return (a.Project == b.Project) &&
 		(a.Id == b.Id) &&
 		(a.Status == b.Status) &&
 		(a.Coordinate == b.Coordinate) &&
 		(a.MetricValue == b.MetricValue) &&
-		(a.Metadata == b.Metadata)
+		(a.Metadata == b.Metadata) &&
+		(a.Kind == b.Kind) &&
+		(a.Output == b.Output) &&
+		(a.Input == b.Input)
 }
 
-func TestGRPCPointCRUD(t *testing.T) {
+func TestGRPCJobCRUD(t *testing.T) {
 	initTestsConfig()
 	tc, err := getTransportCredentials()
 	if err != nil {
@@ -82,41 +85,44 @@ func TestGRPCPointCRUD(t *testing.T) {
 
 	ctx := context.Background()
 
-	created_point, err := c.CreatePoint(ctx, &Point{})
+	created_job, err := c.CreateJob(ctx, &Job{})
 	checkTestErr(err, t)
 
-	read_point, err := c.GetPoint(ctx, &RequestWithId{Id: created_point.Id})
+	read_job, err := c.GetJob(ctx, &RequestWithId{Id: created_job.Id})
 	checkTestErr(err, t)
 
-	if !checkPointsEqual(created_point, read_point) {
+	if !checkJobsEqual(created_job, read_job) {
 		t.Fail()
 	}
 
-	created_point.Status = Point_FAILED
-	created_point.MetricValue = "metric_test"
-	created_point.Metadata = "meta_test"
+	created_job.Status = Job_FAILED
+	created_job.MetricValue = "metric_test"
+	created_job.Metadata = "meta_test"
+	created_job.Input = "input_test"
+	created_job.Output = "output_test"
+	created_job.Kind = Job_ETC
 
-	updated_point, err := c.ModifyPoint(ctx, created_point)
+	updated_job, err := c.ModifyJob(ctx, created_job)
 	checkTestErr(err, t)
 
-	if !checkPointsEqual(created_point, updated_point) {
+	if !checkJobsEqual(created_job, updated_job) {
 		t.Fail()
 	}
 
-	created_point, err = c.CreatePoint(ctx, &Point{Coordinate: "second"})
+	created_job, err = c.CreateJob(ctx, &Job{Coordinate: "second"})
 	checkTestErr(err, t)
 
-	all_points, err := c.ListPoints(ctx, &ListPointsRequest{})
+	all_jobs, err := c.ListJobs(ctx, &ListJobsRequest{})
 	checkTestErr(err, t)
 
-	if len(all_points.Points) != 2 {
+	if len(all_jobs.Jobs) != 2 {
 		t.Fail()
 	}
 
-	pulled_points, err := c.PullPendingPoints(ctx, &ListPointsRequest{HowMany: 2})
+	pulled_jobs, err := c.PullPendingJobs(ctx, &ListJobsRequest{HowMany: 2})
 	checkTestErr(err, t)
 
-	if len(pulled_points.Points) != 1 {
+	if len(pulled_jobs.Jobs) != 1 {
 		t.Fail()
 	}
 }

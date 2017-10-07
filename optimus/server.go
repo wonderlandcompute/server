@@ -15,39 +15,39 @@ type Server struct {
 func detailedInternalError(err error) error {
 	return grpc.Errorf(
 		codes.Internal,
-		fmt.Sprintf("Error creating point: %v", err),
+		fmt.Sprintf("Error creating job: %v", err),
 	)
 }
 
 func (s *Server) Init() {
 }
 
-func (s *Server) CreatePoint(ctx context.Context, in *Point) (*Point, error) {
+func (s *Server) CreateJob(ctx context.Context, in *Job) (*Job, error) {
 	user := getAuthUserFromContext(ctx)
 	in.Project = user.Project
 
-	created_point, err := s.Storage.CreatePoint(in, user)
+	created_job, err := s.Storage.CreateJob(in, user)
 	if err != nil {
 		return nil, detailedInternalError(err)
 	}
 
-	return created_point, nil
+	return created_job, nil
 }
 
-func (s *Server) GetPoint(ctx context.Context, in *RequestWithId) (*Point, error) {
+func (s *Server) GetJob(ctx context.Context, in *RequestWithId) (*Job, error) {
 	user := getAuthUserFromContext(ctx)
 
-	point, err := s.Storage.GetPoint(in.Id, user.Project)
+	job, err := s.Storage.GetJob(in.Id, user.Project)
 	if err != nil {
 		return nil, detailedInternalError(err)
 	}
 
-	return point, nil
+	return job, nil
 }
 
-func (s *Server) ListPoints(ctx context.Context, in *ListPointsRequest) (*ListOfPoints, error) {
+func (s *Server) ListJobs(ctx context.Context, in *ListJobsRequest) (*ListOfJobs, error) {
 	user := getAuthUserFromContext(ctx)
-	ret, err := s.Storage.ListPoints(user.Project)
+	ret, err := s.Storage.ListJobs(user.Project)
 	if err != nil {
 		return nil, detailedInternalError(err)
 	}
@@ -55,13 +55,13 @@ func (s *Server) ListPoints(ctx context.Context, in *ListPointsRequest) (*ListOf
 	return ret, nil
 }
 
-func (s *Server) ModifyPoint(ctx context.Context, in *Point) (*Point, error) {
+func (s *Server) ModifyJob(ctx context.Context, in *Job) (*Job, error) {
 	user := getAuthUserFromContext(ctx)
 	if user.Project != in.Project {
-		return nil, grpc.Errorf(codes.PermissionDenied, "point.Project ≠ user.Project")
+		return nil, grpc.Errorf(codes.PermissionDenied, "job.Project ≠ user.Project")
 	}
 
-	ret, err := s.Storage.UpdatePoint(in)
+	ret, err := s.Storage.UpdateJob(in)
 	if err != nil {
 		return nil, detailedInternalError(err)
 	}
@@ -69,11 +69,11 @@ func (s *Server) ModifyPoint(ctx context.Context, in *Point) (*Point, error) {
 	return ret, nil
 }
 
-func (s *Server) PullPendingPoints(ctx context.Context, in *ListPointsRequest) (*ListOfPoints, error) {
-	pts, err := s.Storage.PullPoints(in.HowMany)
+func (s *Server) PullPendingJobs(ctx context.Context, in *ListJobsRequest) (*ListOfJobs, error) {
+	pts, err := s.Storage.PullJobs(in.HowMany)
 	if err != nil {
 		return nil, detailedInternalError(err)
 	}
 
-	return &ListOfPoints{Points: pts}, nil
+	return &ListOfJobs{Jobs: pts}, nil
 }

@@ -1,4 +1,4 @@
-CREATE TABLE points (
+CREATE TABLE jobs (
   id           SERIAL NOT NULL,
   project      VARCHAR(40),
   status       SMALLINT,
@@ -18,4 +18,4 @@ CREATE TABLE points (
 );
 
 CREATE INDEX status_idx
-  ON points (status);
+  ON jobs (status);
