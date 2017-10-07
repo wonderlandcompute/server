@@ -1,5 +1,0 @@
-server_cert: /Users/macbook/go/src/gitlab.com/lambda-hse/optimus/out/127.0.0.1.crt
-server_key: /Users/macbook/go/src/gitlab.com/lambda-hse/optimus/out/127.0.0.1.key
-ca_cert: /Users/macbook/go/src/gitlab.com/lambda-hse/optimus/out/optimus.crt
-listen_on: :50051
-db_uri: postgres://localhost/optimus?sslmode=disable
