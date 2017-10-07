@@ -9,6 +9,7 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+out/
 
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 .glide/
@@ -16,3 +17,7 @@
 Gopkg.lock
 
 vendor
+.idea
+
+#configs personal
+.yml
