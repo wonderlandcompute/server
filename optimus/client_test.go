@@ -125,4 +125,9 @@ func TestGRPCJobCRUD(t *testing.T) {
 	if len(pulled_jobs.Jobs) != 1 {
 		t.Fail()
 	}
+
+	multiple_jobs, err := c.CreateMultipleJobs(ctx, &ListOfJobs{Jobs: []*Job{&Job{}, &Job{}}})
+	if len(multiple_jobs.Jobs) != 2 {
+		t.Fail()
+	}
 }

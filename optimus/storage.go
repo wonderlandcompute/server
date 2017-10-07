@@ -65,6 +65,46 @@ func (storage *OptimusStorage) CreateJob(job *Job, creator User) (*Job, error) {
 	return created_job, err
 }
 
+func (storage *OptimusStorage) CreateMultipleJobs(jobs []*Job, creator User) ([]*Job, error) {
+	tx, err := storage.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	list_jobs := []*Job{}
+	n := len(jobs)
+	for i := 0; i < n; i += 1 {
+		created_job := &Job{}
+		job := jobs[i]
+		err = tx.QueryRow(`
+			INSERT INTO jobs (project, status, coordinate, metric_value, metadata, input, output, kind, creator)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			RETURNING id, project, status, coordinate, metric_value,metadata, input, output, kind;`,
+			job.Project, job.Status, job.Coordinate, job.MetricValue, job.Metadata, job.Input, job.Output, job.Kind,
+			creator.Username,
+		).Scan(
+			&created_job.Id,
+			&created_job.Project,
+			&created_job.Status,
+			&created_job.Coordinate,
+			&created_job.MetricValue,
+			&created_job.Metadata,
+			&created_job.Input,
+			&created_job.Output,
+			&created_job.Kind,
+		)
+		if err != nil {
+			return nil, err
+		}
+		list_jobs = append(list_jobs, created_job)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+	}
+	return list_jobs, err
+}
+
 func (storage *OptimusStorage) GetJob(id uint64, project string) (*Job, error) {
 	tx, err := storage.db.Begin()
 	if err != nil {

@@ -33,8 +33,18 @@ func (s *Server) CreateJob(ctx context.Context, in *Job) (*Job, error) {
 
 	return created_job, nil
 }
+func (s *Server) CreateMultipleJobs(ctx context.Context, in *ListOfJobs) (*ListOfJobs, error) {
+	user := getAuthUserFromContext(ctx)
 
-func (s *Server) GetJob(ctx context.Context, in *RequestWithId) (*Job, error) {
+	jobs_arr, err := s.Storage.CreateMultipleJobs(in.Jobs, user)
+	if err != nil {
+		return nil, detailedInternalError(err)
+	}
+	jobsList := &ListOfJobs{Jobs: jobs_arr}
+	return jobsList, nil
+}
+
+	func (s *Server) GetJob(ctx context.Context, in *RequestWithId) (*Job, error) {
 	user := getAuthUserFromContext(ctx)
 
 	job, err := s.Storage.GetJob(in.Id, user.Project)
