@@ -100,7 +100,7 @@ func TestGRPCJobCRUD(t *testing.T) {
 	created_job.Metadata = "meta_test"
 	created_job.Input = "input_test"
 	created_job.Output = "output_test"
-	created_job.Kind = Job_ETC
+	created_job.Kind = "kind_test"
 
 	updated_job, err := c.ModifyJob(ctx, created_job)
 	checkTestErr(err, t)

@@ -26,6 +26,7 @@ func TestJobCRUD(t *testing.T) {
 		Coordinate:  "[0,0]",
 		MetricValue: "9.0",
 		Metadata:    `{"a": 123}`,
+		Kind: "kind_test",
 	}
 
 	created_job, err := storage.CreateJob(job, User{Username: "tester"})

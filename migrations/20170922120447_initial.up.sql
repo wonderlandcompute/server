@@ -12,9 +12,9 @@ CREATE TABLE jobs (
 
   input        TEXT   NOT NULL             DEFAULT '',
   output       TEXT   NOT NULL             DEFAULT '',
-  kind         SMALLINT,
+  kind         TEXT   NOT NULL             DEFAULT '',
 
-  PRIMARY KEY (project, id)
+  PRIMARY KEY (project, id, kind)
 );
 
 CREATE INDEX status_idx
