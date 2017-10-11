@@ -3,6 +3,7 @@ package optimus
 import (
 	"database/sql"
 	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
 type OptimusStorageConfig struct {
@@ -71,34 +72,20 @@ func (storage *OptimusStorage) CreateMultipleJobs(jobs []*Job, creator User, pro
 		return nil, err
 	}
 	list_jobs := []*Job{}
-	n := len(jobs)
-	for i := 0; i < n; i += 1 {
+	stmt, _ := tx.Prepare(pq.CopyIn("jobs", "project", "status", "coordinate", "metric_value", "metadata", "input", "output", "kind", "creator")) // MessageDetailRecord is the table name
+	for _, job := range jobs {
 		created_job := &Job{}
-		job := jobs[i]
 		job.Project = project
-		err = tx.QueryRow(`
-			INSERT INTO jobs (project, status, coordinate, metric_value, metadata, input, output, kind, creator)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-			RETURNING id, project, status, coordinate, metric_value,metadata, input, output, kind;`,
-			job.Project, job.Status, job.Coordinate, job.MetricValue, job.Metadata, job.Input, job.Output, job.Kind,
-			creator.Username,
-		).Scan(
-			&created_job.Id,
-			&created_job.Project,
-			&created_job.Status,
-			&created_job.Coordinate,
-			&created_job.MetricValue,
-			&created_job.Metadata,
-			&created_job.Input,
-			&created_job.Output,
-			&created_job.Kind,
-		)
+		_, err := stmt.Exec(job.Project, job.Status, job.Coordinate, job.MetricValue, job.Metadata, job.Input, job.Output, job.Kind, creator.Username)
 		if err != nil {
 			return nil, err
 		}
 		list_jobs = append(list_jobs, created_job)
 	}
-
+	_, err = stmt.Exec()
+	if err != nil {
+		return nil, err
+	}
 	err = tx.Commit()
 	if err != nil {
 		tx.Rollback()
@@ -235,7 +222,7 @@ func (storage *OptimusStorage) PullJobs(how_many uint32) ([]*Job, error) {
 	result_jobs := []*Job{}
 	rows, err := tx.Query(`
 		WITH pulled_pts as (
-			SELECT id, project
+			SELECT id, project, kind
 			FROM jobs
 			WHERE status=$1
 			LIMIT $2
@@ -244,7 +231,7 @@ func (storage *OptimusStorage) PullJobs(how_many uint32) ([]*Job, error) {
 		UPDATE jobs pts
 		SET status=$3
 		FROM pulled_pts
-		WHERE pulled_pts.id=pts.id and pulled_pts.project=pts.project
+		WHERE pulled_pts.id=pts.id and pulled_pts.project=pts.project and pulled_pts.kind=pts.kind
 		RETURNING pts.id, pts.project, pts.status, pts.coordinate, pts.metric_value, pts.metadata, pts.input, pts.output, pts.kind;`,
 		Job_PENDING,
 		how_many,

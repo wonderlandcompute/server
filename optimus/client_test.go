@@ -126,7 +126,7 @@ func TestGRPCJobCRUD(t *testing.T) {
 		t.Fail()
 	}
 
-	multiple_jobs, err := c.CreateMultipleJobs(ctx, &ListOfJobs{Jobs: []*Job{&Job{}, &Job{}}})
+	multiple_jobs, err := c.CreateMultipleJobs(ctx, &ListOfJobs{Jobs: []*Job{&Job{Input: "mul1"}, &Job{Input: "mul2"}}})
 	if len(multiple_jobs.Jobs) != 2 {
 		t.Fail()
 	}
