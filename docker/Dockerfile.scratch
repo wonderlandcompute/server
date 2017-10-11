@@ -1,0 +1,3 @@
+FROM scratch
+ADD optimus-server /
+CMD ["/optimus-server"]
