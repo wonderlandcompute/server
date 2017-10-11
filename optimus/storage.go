@@ -2,8 +2,8 @@ package optimus
 
 import (
 	"database/sql"
-	_ "github.com/lib/pq"
 	"github.com/lib/pq"
+	_ "github.com/lib/pq"
 )
 
 type OptimusStorageConfig struct {
