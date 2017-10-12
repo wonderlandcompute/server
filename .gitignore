@@ -22,4 +22,4 @@ vendor
 #configs personal
 .yml
 
-docker/optimus-server
+build/

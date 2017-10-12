@@ -1,0 +1,8 @@
+FROM scratch
+
+ADD build/optimus-server /
+ADD build/migrate /
+
+COPY migrations /migrations
+
+CMD ["/optimus-server"]
