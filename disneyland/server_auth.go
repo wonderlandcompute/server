@@ -1,4 +1,4 @@
-package optimus
+package disneyland
 
 import (
 	"golang.org/x/net/context"
@@ -11,6 +11,7 @@ import (
 type User struct {
 	Username string
 	Project  string
+	Kind string
 }
 
 func getAuthUserFromContext(ctx context.Context) User {
@@ -23,7 +24,6 @@ func getAuthUserFromContext(ctx context.Context) User {
 
 func (s *Server) AuthFuncOverride(ctx context.Context, fullMethodName string) (context.Context, error) {
 	allowed_endpoints := map[string]bool{
-	// "/OptimusOptimus/CreateJob":         true,
 	}
 	if allow, ok := allowed_endpoints[fullMethodName]; allow && ok {
 		return ctx, nil

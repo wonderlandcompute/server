@@ -1,4 +1,4 @@
-package optimus
+package disneyland
 
 import (
 	"database/sql"
@@ -6,18 +6,18 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type OptimusStorageConfig struct {
+type DisneylandStorageConfig struct {
 	DatabaseURI string `json:"db_uri"`
 }
 
-type OptimusStorage struct {
+type DisneylandStorage struct {
 	db     *sql.DB
-	Config OptimusStorageConfig
+	Config DisneylandStorageConfig
 }
 
-func NewOptimusStorage(db_uri string) (*OptimusStorage, error) {
-	ret := &OptimusStorage{
-		Config: OptimusStorageConfig{DatabaseURI: db_uri},
+func NewDisneylandStorage(db_uri string) (*DisneylandStorage, error) {
+	ret := &DisneylandStorage{
+		Config: DisneylandStorageConfig{DatabaseURI: db_uri},
 	}
 
 	err := ret.Connect()
@@ -25,13 +25,13 @@ func NewOptimusStorage(db_uri string) (*OptimusStorage, error) {
 	return ret, err
 }
 
-func (storage *OptimusStorage) Connect() error {
+func (storage *DisneylandStorage) Connect() error {
 	db, err := sql.Open("postgres", storage.Config.DatabaseURI)
 	storage.db = db
 	return err
 }
 
-func (storage *OptimusStorage) CreateJob(job *Job, creator User) (*Job, error) {
+func (storage *DisneylandStorage) CreateJob(job *Job, creator User) (*Job, error) {
 	tx, err := storage.db.Begin()
 	if err != nil {
 		return nil, err
@@ -66,21 +66,18 @@ func (storage *OptimusStorage) CreateJob(job *Job, creator User) (*Job, error) {
 	return created_job, err
 }
 
-func (storage *OptimusStorage) CreateMultipleJobs(jobs []*Job, creator User, project string) ([]*Job, error) {
+func (storage *DisneylandStorage) CreateMultipleJobs(jobs []*Job, creator User, project string) ([]*Job, error) {
 	tx, err := storage.db.Begin()
 	if err != nil {
 		return nil, err
 	}
-	list_jobs := []*Job{}
-	stmt, _ := tx.Prepare(pq.CopyIn("jobs", "project", "status", "coordinate", "metric_value", "metadata", "input", "output", "kind", "creator")) // MessageDetailRecord is the table name
+	stmt, _ := tx.Prepare(pq.CopyIn("jobs", "project", "status", "coordinate", "metric_value", "metadata", "input", "output", "kind", "creator"))
 	for _, job := range jobs {
-		created_job := &Job{}
 		job.Project = project
 		_, err := stmt.Exec(job.Project, job.Status, job.Coordinate, job.MetricValue, job.Metadata, job.Input, job.Output, job.Kind, creator.Username)
 		if err != nil {
 			return nil, err
 		}
-		list_jobs = append(list_jobs, created_job)
 	}
 	_, err = stmt.Exec()
 	if err != nil {
@@ -90,10 +87,10 @@ func (storage *OptimusStorage) CreateMultipleJobs(jobs []*Job, creator User, pro
 	if err != nil {
 		tx.Rollback()
 	}
-	return list_jobs, err
+	return jobs, err
 }
 
-func (storage *OptimusStorage) GetJob(id uint64, project string) (*Job, error) {
+func (storage *DisneylandStorage) GetJob(id uint64, project string) (*Job, error) {
 	tx, err := storage.db.Begin()
 	if err != nil {
 		return nil, err
@@ -126,7 +123,7 @@ func (storage *OptimusStorage) GetJob(id uint64, project string) (*Job, error) {
 	return job, err
 }
 
-func (storage *OptimusStorage) ListJobs(project string) (*ListOfJobs, error) {
+func (storage *DisneylandStorage) ListJobs(project string) (*ListOfJobs, error) {
 	query := `SELECT id, project, status, coordinate, metric_value, metadata, input, output, kind
 		FROM jobs
 		WHERE project=$1;`
@@ -164,7 +161,7 @@ func (storage *OptimusStorage) ListJobs(project string) (*ListOfJobs, error) {
 	return ret, err
 }
 
-func (storage *OptimusStorage) UpdateJob(job *Job) (*Job, error) {
+func (storage *DisneylandStorage) UpdateJob(job *Job) (*Job, error) {
 	tx, err := storage.db.Begin()
 	if err != nil {
 		return nil, err
@@ -213,7 +210,7 @@ func (storage *OptimusStorage) UpdateJob(job *Job) (*Job, error) {
 	return result_job, err
 }
 
-func (storage *OptimusStorage) PullJobs(how_many uint32) ([]*Job, error) {
+func (storage *DisneylandStorage) PullJobs(how_many uint32) ([]*Job, error) {
 	tx, err := storage.db.Begin()
 	if err != nil {
 		return nil, err

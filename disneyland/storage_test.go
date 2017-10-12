@@ -1,4 +1,4 @@
-package optimus
+package disneyland
 
 import (
 	"testing"
@@ -13,7 +13,7 @@ func checkTestErr(err error, t *testing.T) {
 
 func TestJobCRUD(t *testing.T) {
 	initTestsConfig()
-	storage, err := NewOptimusStorage(TestsConfig.DatabaseURI)
+	storage, err := NewDisneylandStorage(TestsConfig.DatabaseURI)
 	checkTestErr(err, t)
 
 	if storage == nil {

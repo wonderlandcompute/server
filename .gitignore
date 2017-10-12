@@ -21,3 +21,4 @@ vendor
 
 #configs personal
 .yml
+configs/
