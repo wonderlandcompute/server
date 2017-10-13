@@ -1,8 +1,8 @@
 FROM scratch
 
-ADD build/optimus-server /
+ADD build/disneyland-server /
 ADD build/migrate /
 
 COPY migrations /migrations
 
-CMD ["/optimus-server"]
+CMD ["/disneyland-server"]
