@@ -8,7 +8,7 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	"github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/sirupsen/logrus"
-	"gitlab.com/lambda-hse/optimus/optimus"
+	"gitlab.com/lambda-hse/optimus/disneyland"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
@@ -19,7 +19,7 @@ import (
 	"os"
 )
 
-type OptimusServerConfig struct {
+type DisneylandServerConfig struct {
 	ServerCert  string `yaml:"server_cert"`
 	ServerKey   string `yaml:"server_key"`
 	CACert      string `yaml:"ca_cert"`
@@ -27,7 +27,7 @@ type OptimusServerConfig struct {
 	DatabaseURI string `yaml:"db_uri"`
 }
 
-var Config *OptimusServerConfig
+var Config *DisneylandServerConfig
 
 func getTransportCredentials() (*credentials.TransportCredentials, error) {
 	peerCert, err := tls.LoadX509KeyPair(Config.ServerCert, Config.ServerKey)
@@ -52,8 +52,8 @@ func getTransportCredentials() (*credentials.TransportCredentials, error) {
 }
 
 func main() {
-	Config = &OptimusServerConfig{}
-	config_path := os.Getenv("OPTIMUS_CONFIG")
+	Config = &DisneylandServerConfig{}
+	config_path := os.Getenv("DISNEYLAND_CONFIG")
 	content, err := ioutil.ReadFile(config_path)
 	if err != nil {
 		log.Fatalf("Error loading config: %v", err)
@@ -64,7 +64,7 @@ func main() {
 		log.Fatalf("Error parsing config: %v", err)
 	}
 
-	storage, err := optimus.NewOptimusStorage(Config.DatabaseURI)
+	storage, err := disneyland.NewDisneylandStorage(Config.DatabaseURI)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	server := &optimus.Server{
+	server := &disneyland.Server{
 		Storage: storage,
 	}
 	server.Init()
@@ -105,7 +105,7 @@ func main() {
 			grpc_auth.StreamServerInterceptor(nil),
 		),
 	)
-	optimus.RegisterOptimusServer(s, server)
+	disneyland.RegisterDisneylandServer(s, server)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)

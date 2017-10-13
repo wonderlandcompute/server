@@ -23,3 +23,5 @@ vendor
 .yml
 
 build/
+configs/
+

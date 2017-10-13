@@ -1,4 +1,4 @@
-package optimus
+package disneyland
 
 import (
 	"crypto/tls"
@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-type OptimusTestsConfig struct {
+type DisneylandTestsConfig struct {
 	ClientCert  string `yaml:"client_cert"`
 	ClientKey   string `yaml:"client_key"`
 	CACert      string `yaml:"ca_cert"`
@@ -21,11 +21,11 @@ type OptimusTestsConfig struct {
 	DatabaseURI string `yaml:"db_uri"`
 }
 
-var TestsConfig *OptimusTestsConfig
+var TestsConfig *DisneylandTestsConfig
 
 func initTestsConfig() {
-	TestsConfig = &OptimusTestsConfig{}
-	config_path := os.Getenv("OPTIMUS_TESTS_CONFIG")
+	TestsConfig = &DisneylandTestsConfig{}
+	config_path := os.Getenv("DISNEYLAND_TESTS_CONFIG")
 	content, err := ioutil.ReadFile(config_path)
 	if err != nil {
 		log.Fatalf("Error loading config: %v", err)
@@ -81,7 +81,7 @@ func TestGRPCJobCRUD(t *testing.T) {
 	conn, err := grpc.Dial(TestsConfig.ConnectTo, grpc.WithTransportCredentials(*tc))
 	checkTestErr(err, t)
 	defer conn.Close()
-	c := NewOptimusClient(conn)
+	c := NewDisneylandClient(conn)
 
 	ctx := context.Background()
 
