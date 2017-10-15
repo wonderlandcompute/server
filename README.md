@@ -45,3 +45,23 @@ certstrap sign 127.0.0.1 --CA disneyland
 certstrap request-cert -o ship-shield --cn test-user
 certstrap sign test-user --CA disneyland
 ```
+
+In order to use access to `ANY` project/kid jobs setup `openssl.cnf`
+```
+[ new_oids ]
+projectoid=1.2.3.4
+kindoid=${projectoid}.5.6
+...
+[ req_distinguished_name ]
+projectoid = access_to_project
+kindoid = access_to_jobkind
+```
+now you could run the following script 
+```
+openssl
+
+# for autorize docker-worker and project/kind access
+openssl genrsa -out test-user.key 4096
+openssl req -config ./openssl.cnf -new -key test-user.key -out test-user.csr
+openssl x509 -req -in out/test-user.csr -CA out/disneyland.crt -CAkey out/disneyland.key -CAcreateserial -out test-user.crt -days 5000
+```
