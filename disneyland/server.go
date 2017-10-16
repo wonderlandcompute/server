@@ -24,19 +24,23 @@ func (s *Server) Init() {
 
 func (s *Server) CreateJob(ctx context.Context, in *Job) (*Job, error) {
 	user := getAuthUserFromContext(ctx)
-	in.Project = user.Project
-
-	created_job, err := s.Storage.CreateJob(in, user)
+	if in.Project == "" {
+		in.Project = user.Project
+	}
+	if user.Project != in.Project && user.Project_access != "ANY" {
+		return nil, grpc.Errorf(codes.PermissionDenied, "job.Project ≠ user.Project")
+	}
+	createdJob, err := s.Storage.CreateJob(in, user)
 	if err != nil {
 		return nil, detailedInternalError(err)
 	}
 
-	return created_job, nil
+	return createdJob, nil
 }
 func (s *Server) CreateMultipleJobs(ctx context.Context, in *ListOfJobs) (*ListOfJobs, error) {
 	user := getAuthUserFromContext(ctx)
 
-	jobs_arr, err := s.Storage.CreateMultipleJobs(in.Jobs, user, user.Project)
+	jobs_arr, err := s.Storage.CreateMultipleJobs(in.Jobs, user)
 	if err != nil {
 		return nil, detailedInternalError(err)
 	}
@@ -46,8 +50,11 @@ func (s *Server) CreateMultipleJobs(ctx context.Context, in *ListOfJobs) (*ListO
 
 func (s *Server) GetJob(ctx context.Context, in *RequestWithId) (*Job, error) {
 	user := getAuthUserFromContext(ctx)
-
-	job, err := s.Storage.GetJob(in.Id, user.Project)
+	project := user.Project
+	if user.Project_access == "ANY" {
+		project = ""
+	}
+	job, err := s.Storage.GetJob(in.Id, project)
 	if err != nil {
 		return nil, detailedInternalError(err)
 	}
@@ -67,7 +74,7 @@ func (s *Server) ListJobs(ctx context.Context, in *ListJobsRequest) (*ListOfJobs
 
 func (s *Server) ModifyJob(ctx context.Context, in *Job) (*Job, error) {
 	user := getAuthUserFromContext(ctx)
-	if user.Project != in.Project {
+	if user.Project != in.Project && user.Project_access != "ANY" {
 		return nil, grpc.Errorf(codes.PermissionDenied, "job.Project ≠ user.Project")
 	}
 

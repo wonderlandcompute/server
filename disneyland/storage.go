@@ -66,14 +66,13 @@ func (storage *DisneylandStorage) CreateJob(job *Job, creator User) (*Job, error
 	return created_job, err
 }
 
-func (storage *DisneylandStorage) CreateMultipleJobs(jobs []*Job, creator User, project string) ([]*Job, error) {
+func (storage *DisneylandStorage) CreateMultipleJobs(jobs []*Job, creator User) ([]*Job, error) {
 	tx, err := storage.db.Begin()
 	if err != nil {
 		return nil, err
 	}
 	stmt, _ := tx.Prepare(pq.CopyIn("jobs", "project", "status", "coordinate", "metric_value", "metadata", "input", "output", "kind", "creator"))
 	for _, job := range jobs {
-		job.Project = project
 		_, err := stmt.Exec(job.Project, job.Status, job.Coordinate, job.MetricValue, job.Metadata, job.Input, job.Output, job.Kind, creator.Username)
 		if err != nil {
 			return nil, err
@@ -95,23 +94,38 @@ func (storage *DisneylandStorage) GetJob(id uint64, project string) (*Job, error
 	if err != nil {
 		return nil, err
 	}
-
 	job := &Job{}
-	err = tx.QueryRow(`
-		SELECT id, project, status, coordinate, metric_value, metadata, input, output, kind FROM jobs
-		WHERE id=$1 AND project=$2;`,
-		id, project,
-	).Scan(
-		&job.Id,
-		&job.Project,
-		&job.Status,
-		&job.Coordinate,
-		&job.MetricValue,
-		&job.Metadata,
-		&job.Input,
-		&job.Output,
-		&job.Kind,
-	)
+
+	strQuery := `SELECT id, project, status, coordinate, metric_value, metadata, input, output, kind FROM jobs
+		WHERE id=$1 AND project=$2;`
+	if project == "" {
+		strQuery = `SELECT id, project, status, coordinate, metric_value, metadata, input, output, kind FROM jobs
+		WHERE id=$1;`
+		err = tx.QueryRow(strQuery, id).Scan(
+			&job.Id,
+			&job.Project,
+			&job.Status,
+			&job.Coordinate,
+			&job.MetricValue,
+			&job.Metadata,
+			&job.Input,
+			&job.Output,
+			&job.Kind,
+		)
+	} else {
+		err = tx.QueryRow(strQuery, id, project).Scan(
+			&job.Id,
+			&job.Project,
+			&job.Status,
+			&job.Coordinate,
+			&job.MetricValue,
+			&job.Metadata,
+			&job.Input,
+			&job.Output,
+			&job.Kind,
+		)
+	}
+
 	if err != nil {
 		return nil, err
 	}

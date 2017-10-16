@@ -85,7 +85,7 @@ func TestGRPCJobCRUD(t *testing.T) {
 
 	ctx := context.Background()
 
-	created_job, err := c.CreateJob(ctx, &Job{})
+	created_job, err := c.CreateJob(ctx, &Job{Project: "abc"})
 	checkTestErr(err, t)
 
 	read_job, err := c.GetJob(ctx, &RequestWithId{Id: created_job.Id})
@@ -109,7 +109,7 @@ func TestGRPCJobCRUD(t *testing.T) {
 		t.Fail()
 	}
 
-	created_job, err = c.CreateJob(ctx, &Job{Coordinate: "second"})
+	created_job, err = c.CreateJob(ctx, &Job{Coordinate: "second", Project: "abc"})
 	checkTestErr(err, t)
 
 	all_jobs, err := c.ListJobs(ctx, &ListJobsRequest{})
@@ -126,7 +126,7 @@ func TestGRPCJobCRUD(t *testing.T) {
 		t.Fail()
 	}
 
-	multiple_jobs, err := c.CreateMultipleJobs(ctx, &ListOfJobs{Jobs: []*Job{&Job{Input: "mul1"}, &Job{Input: "mul2"}}})
+	multiple_jobs, err := c.CreateMultipleJobs(ctx, &ListOfJobs{Jobs: []*Job{&Job{Input: "mul1", Project: "abc"}, &Job{Input: "mul2", Project: "abc"}}})
 	if len(multiple_jobs.Jobs) != 2 {
 		t.Fail()
 	}
