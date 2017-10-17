@@ -45,5 +45,3 @@ certstrap sign 127.0.0.1 --CA disneyland
 certstrap request-cert -o ship-shield.ANY.ANY --cn test-user
 certstrap sign test-user --CA disneyland
 ```
-
-In order to use access to `ANY` project/kind jobs setup `openssl.cnf`, you could locate it with running folowing comand 
