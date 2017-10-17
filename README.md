@@ -45,3 +45,14 @@ You could provide a certain job access using `access_to_project=[project_name / 
 certstrap request-cert -o ship-shield.ship-shield.docker --cn test-user
 certstrap sign test-user --CA disneyland
 ```
+Examples
+---
+
+to generate client `csr` for user (name "test-user", project "ship-shield", access to project "ship-shield" and access to any kind of jobs) execute following
+`certstrap request-cert -o ship-shield.ship-shield.ANY --cn test-user`
+
+to generate client `csr` for user (name "alex", project "point-finder", access to any project and access to any kind of jobs) execute following
+`certstrap request-cert -o point-finder.ship-ANY.ANY --cn alex`
+
+to generate client `csr` for docker (name "docker", project "ship-shield", access to project "ship-shield" and access to "docker" kind of jobs) execute following
+`certstrap request-cert -o ship-shield.ship-shield.docker --cn docker`
