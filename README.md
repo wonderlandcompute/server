@@ -31,16 +31,16 @@ Certificates
 
 TLS auth supoort is inspired by this article: https://bbengfort.github.io/programmer/2017/03/03/secure-grpc.html
 
-Full certificate creation workflow looks like this
-
+Full certificate creation workflow [certstrap](https://github.com/square/certstrap) looks like this
 ```
-certstrap
-
 # For server
 certstrap init --common-name "disneyland"
 certstrap request-cert -ip 127.0.0.1
 certstrap sign 127.0.0.1 --CA disneyland
-
+```
+`-o` parameter used to provide structured data in format `project.access_to_project.access_to_kind` (three strings separated by `.`)
+You could provide a certain job access using `access_to_project=[project_name / ANY]` and `access_to_jobkind=[kind_name / ANY]` (`ANY` for full access )
+```
 # For client
 certstrap request-cert -o ship-shield.ship-shield.docker --cn test-user
 certstrap sign test-user --CA disneyland

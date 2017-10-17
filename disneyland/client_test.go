@@ -109,14 +109,14 @@ func TestGRPCJobCRUD(t *testing.T) {
 	created_job, err = c.CreateJob(ctx, &Job{})
 	checkTestErr(err, t)
 
-	all_jobs, err := c.ListJobs(ctx, &ListJobsKindRequest{HowMany: 2, Kind: "docker"})
+	all_jobs, err := c.ListJobs(ctx, &ListJobsRequest{HowMany: 2, Kind: "docker"})
 	checkTestErr(err, t)
 
 	if len(all_jobs.Jobs) < 1 {
 		t.Fail()
 	}
 
-	pulled_jobs, err := c.PullPendingJobs(ctx, &ListJobsKindRequest{HowMany: 2, Kind: "docker"})
+	pulled_jobs, err := c.PullPendingJobs(ctx, &ListJobsRequest{HowMany: 2, Kind: "docker"})
 	checkTestErr(err, t)
 
 	if len(pulled_jobs.Jobs) < 1 {
