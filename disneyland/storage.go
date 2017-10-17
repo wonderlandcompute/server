@@ -93,12 +93,12 @@ func (storage *DisneylandStorage) GetJob(id uint64) (*Job, error) {
 	return job, err
 }
 
-func (storage *DisneylandStorage) ListJobs(project string) (*ListOfJobs, error) {
-	query := `SELECT id, project, status, metadata, input, output, kind
+func (storage *DisneylandStorage) ListJobs(project string, kind string) (*ListOfJobs, error) {
+	strQuery := `SELECT id, project, status, metadata, input, output, kind
 			  FROM jobs
-			  WHERE project=$1;`
+			  WHERE project=$1 and kind=$2;`
 
-	rows, err := storage.db.Query(query, project)
+	rows, err := storage.db.Query(strQuery, project, kind)
 	if err != nil {
 		return nil, err
 	}

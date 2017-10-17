@@ -42,6 +42,6 @@ certstrap request-cert -ip 127.0.0.1
 certstrap sign 127.0.0.1 --CA disneyland
 
 # For client
-certstrap request-cert -o ship-shield.ANY.ANY --cn test-user
+certstrap request-cert -o ship-shield.ship-shield.docker --cn test-user
 certstrap sign test-user --CA disneyland
 ```

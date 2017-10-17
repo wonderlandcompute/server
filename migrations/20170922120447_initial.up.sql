@@ -17,3 +17,5 @@ CREATE TABLE jobs (
 
 CREATE INDEX status_idx
   ON jobs (status);
+CREATE INDEX access_idx
+  ON jobs (project,kind);
