@@ -27,7 +27,7 @@ func (s *Server) CreateJob(ctx context.Context, in *Job) (*Job, error) {
 	if in.Project == "" {
 		in.Project = user.Project
 	}
-	if user.Project != in.Project && user.Project_access != "ANY" {
+	if user.Project != in.Project && user.ProjectAccess != "ANY" {
 		return nil, grpc.Errorf(codes.PermissionDenied, "job.Project ≠ user.Project")
 	}
 	createdJob, err := s.Storage.CreateJob(in, user)
@@ -41,7 +41,7 @@ func (s *Server) CreateJob(ctx context.Context, in *Job) (*Job, error) {
 func (s *Server) GetJob(ctx context.Context, in *RequestWithId) (*Job, error) {
 	user := getAuthUserFromContext(ctx)
 	job, err := s.Storage.GetJob(in.Id)
-	if user.Project != job.Project && user.Project_access != "ANY" {
+	if user.Project != job.Project && user.ProjectAccess != "ANY" {
 		err = grpc.Errorf(codes.PermissionDenied, "job.Project ≠ user.Project")
 	}
 	if err != nil {
@@ -51,19 +51,19 @@ func (s *Server) GetJob(ctx context.Context, in *RequestWithId) (*Job, error) {
 	return job, nil
 }
 
-func (s *Server) ListJobs(ctx context.Context, in *ListJobsKindRequest) (*ListOfJobs, error) {
+func (s *Server) ListJobs(ctx context.Context, in *ListJobsRequest) (*ListOfJobs, error) {
 	user := getAuthUserFromContext(ctx)
-	user_kind := user.Kind_access
+	userKind := user.KindAccess
 	kind := in.Kind
 	if kind == "" {
-		if user_kind == "ANY" {
+		if userKind == "ANY" {
 			return nil, grpc.Errorf(codes.PermissionDenied, "ListJobsKindRequest.Kind not specified")
 		}
-		kind = user_kind
+		kind = userKind
 	}
 
-	if user_kind != kind && user_kind != "ANY" {
-		return nil, grpc.Errorf(codes.PermissionDenied, "job.Kind ≠ user.Kind_access")
+	if userKind != kind && userKind != "ANY" {
+		return nil, grpc.Errorf(codes.PermissionDenied, "job.Kind ≠ user.KindAccess")
 	}
 	ret, err := s.Storage.ListJobs(user.Project, kind)
 	if err != nil {
@@ -75,7 +75,7 @@ func (s *Server) ListJobs(ctx context.Context, in *ListJobsKindRequest) (*ListOf
 
 func (s *Server) ModifyJob(ctx context.Context, in *Job) (*Job, error) {
 	user := getAuthUserFromContext(ctx)
-	if user.Project != in.Project && user.Project_access != "ANY" {
+	if user.Project != in.Project && user.ProjectAccess != "ANY" {
 		return nil, grpc.Errorf(codes.PermissionDenied, "job.Project ≠ user.Project")
 	}
 
@@ -87,18 +87,18 @@ func (s *Server) ModifyJob(ctx context.Context, in *Job) (*Job, error) {
 	return ret, nil
 }
 
-func (s *Server) PullPendingJobs(ctx context.Context, in *ListJobsKindRequest) (*ListOfJobs, error) {
+func (s *Server) PullPendingJobs(ctx context.Context, in *ListJobsRequest) (*ListOfJobs, error) {
 	user := getAuthUserFromContext(ctx)
 	kind := in.Kind
-	user_kind := user.Kind_access
+	userKind := user.KindAccess
 	if kind == "" {
-		if user_kind == "ANY" {
+		if userKind == "ANY" {
 			return nil, grpc.Errorf(codes.PermissionDenied, "ListJobsKindRequest.Kind not specified")
 		}
-		kind = user_kind
+		kind = userKind
 	}
-	if user_kind != kind && user_kind != "ANY" {
-		return nil, grpc.Errorf(codes.PermissionDenied, "job.Kind ≠ user.Kind_access")
+	if userKind != kind && userKind != "ANY" {
+		return nil, grpc.Errorf(codes.PermissionDenied, "job.Kind ≠ user.KindAccess")
 	}
 
 	pts, err := s.Storage.PullJobs(in.HowMany, kind)

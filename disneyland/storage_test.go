@@ -27,18 +27,18 @@ func TestJobCRUD(t *testing.T) {
 		Kind:     "kind_test",
 	}
 
-	created_job, err := storage.CreateJob(job, User{Username: "tester"})
+	createdJob, err := storage.CreateJob(job, User{Username: "tester"})
 	checkTestErr(err, t)
 
-	if created_job == nil {
+	if createdJob == nil {
 		t.Fail()
 	}
 
-	if created_job.Project != job.Project {
+	if createdJob.Project != job.Project {
 		t.Fail()
 	}
 
-	if created_job.Metadata != job.Metadata {
+	if createdJob.Metadata != job.Metadata {
 		t.Fail()
 	}
 

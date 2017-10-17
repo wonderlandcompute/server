@@ -10,10 +10,10 @@ import (
 )
 
 type User struct {
-	Username       string
-	Project        string
-	Project_access string
-	Kind_access    string
+	Username      string
+	Project       string
+	ProjectAccess string
+	KindAccess    string
 }
 
 func getAuthUserFromContext(ctx context.Context) User {
@@ -23,7 +23,7 @@ func getAuthUserFromContext(ctx context.Context) User {
 	}
 	return User{}
 }
-func parseCertificateFields(field string) (project string, project_access string, kind_access string, err error) {
+func parseCertificateFields(field string) (project string, projectAccess string, kindAccess string, err error) {
 	fieldCopy := strings.Split(field, ".")
 	if len(fieldCopy) != 3 {
 		return "", "", "", grpc.Errorf(codes.DataLoss, "Error processing Organization Name")
@@ -32,8 +32,8 @@ func parseCertificateFields(field string) (project string, project_access string
 
 }
 func (s *Server) AuthFuncOverride(ctx context.Context, fullMethodName string) (context.Context, error) {
-	allowed_endpoints := map[string]bool{}
-	if allow, ok := allowed_endpoints[fullMethodName]; allow && ok {
+	allowedEndpoints := map[string]bool{}
+	if allow, ok := allowedEndpoints[fullMethodName]; allow && ok {
 		return ctx, nil
 	}
 
@@ -52,16 +52,16 @@ func (s *Server) AuthFuncOverride(ctx context.Context, fullMethodName string) (c
 		return nil, grpc.Errorf(codes.Unauthenticated, "Error processing client certificate")
 	}
 
-	project, project_access, kind_access, err := parseCertificateFields(cert.Subject.Organization[0])
+	project, projectAccess, kindAccess, err := parseCertificateFields(cert.Subject.Organization[0])
 	if err != nil {
 		return nil, err
 	}
 
 	user := User{
-		Username:       cert.Subject.CommonName,
-		Project:        project,
-		Kind_access:    kind_access,
-		Project_access: project_access,
+		Username:      cert.Subject.CommonName,
+		Project:       project,
+		KindAccess:    kindAccess,
+		ProjectAccess: projectAccess,
 	}
 	return context.WithValue(ctx, "authorized-user", user), nil
 }
