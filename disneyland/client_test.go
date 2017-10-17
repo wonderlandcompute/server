@@ -63,8 +63,6 @@ func checkJobsEqual(a *Job, b *Job) bool {
 	return (a.Project == b.Project) &&
 		(a.Id == b.Id) &&
 		(a.Status == b.Status) &&
-		(a.Coordinate == b.Coordinate) &&
-		(a.MetricValue == b.MetricValue) &&
 		(a.Metadata == b.Metadata) &&
 		(a.Kind == b.Kind) &&
 		(a.Output == b.Output) &&
@@ -85,7 +83,7 @@ func TestGRPCJobCRUD(t *testing.T) {
 
 	ctx := context.Background()
 
-	created_job, err := c.CreateJob(ctx, &Job{Project: "abc"})
+	created_job, err := c.CreateJob(ctx, &Job{Status: Job_PENDING})
 	checkTestErr(err, t)
 
 	read_job, err := c.GetJob(ctx, &RequestWithId{Id: created_job.Id})
@@ -95,12 +93,11 @@ func TestGRPCJobCRUD(t *testing.T) {
 		t.Fail()
 	}
 
-	created_job.Status = Job_FAILED
-	created_job.MetricValue = "metric_test"
+	created_job.Status = Job_PENDING
 	created_job.Metadata = "meta_test"
 	created_job.Input = "input_test"
 	created_job.Output = "output_test"
-	created_job.Kind = "kind_test"
+	created_job.Kind = "docker"
 
 	updated_job, err := c.ModifyJob(ctx, created_job)
 	checkTestErr(err, t)
@@ -109,25 +106,21 @@ func TestGRPCJobCRUD(t *testing.T) {
 		t.Fail()
 	}
 
-	created_job, err = c.CreateJob(ctx, &Job{Coordinate: "second", Project: "abc"})
+	created_job, err = c.CreateJob(ctx, &Job{Project: "abc"})
 	checkTestErr(err, t)
 
-	all_jobs, err := c.ListJobs(ctx, &ListJobsRequest{})
+	all_jobs, err := c.ListJobs(ctx, &ListJobsRequest{HowMany: 2})
 	checkTestErr(err, t)
 
-	if len(all_jobs.Jobs) != 2 {
+	if len(all_jobs.Jobs) < 1 {
 		t.Fail()
 	}
 
-	pulled_jobs, err := c.PullPendingJobs(ctx, &ListJobsRequest{HowMany: 2})
+	pulled_jobs, err := c.PullPendingJobs(ctx, &ListJobsKindRequest{HowMany: 2, Kind: "docker"})
 	checkTestErr(err, t)
 
-	if len(pulled_jobs.Jobs) != 1 {
+	if len(pulled_jobs.Jobs) < 1 {
 		t.Fail()
 	}
 
-	multiple_jobs, err := c.CreateMultipleJobs(ctx, &ListOfJobs{Jobs: []*Job{&Job{Input: "mul1", Project: "abc"}, &Job{Input: "mul2", Project: "abc"}}})
-	if len(multiple_jobs.Jobs) != 2 {
-		t.Fail()
-	}
 }

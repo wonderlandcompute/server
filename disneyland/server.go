@@ -15,7 +15,7 @@ type Server struct {
 func detailedInternalError(err error) error {
 	return grpc.Errorf(
 		codes.Internal,
-		fmt.Sprintf("Error creating job: %v", err),
+		fmt.Sprintf("Error processing job: %v", err),
 	)
 }
 
@@ -37,24 +37,13 @@ func (s *Server) CreateJob(ctx context.Context, in *Job) (*Job, error) {
 
 	return createdJob, nil
 }
-func (s *Server) CreateMultipleJobs(ctx context.Context, in *ListOfJobs) (*ListOfJobs, error) {
-	user := getAuthUserFromContext(ctx)
-
-	jobs_arr, err := s.Storage.CreateMultipleJobs(in.Jobs, user)
-	if err != nil {
-		return nil, detailedInternalError(err)
-	}
-	jobsList := &ListOfJobs{Jobs: jobs_arr}
-	return jobsList, nil
-}
 
 func (s *Server) GetJob(ctx context.Context, in *RequestWithId) (*Job, error) {
 	user := getAuthUserFromContext(ctx)
-	project := user.Project
-	if user.Project_access == "ANY" {
-		project = ""
+	job, err := s.Storage.GetJob(in.Id)
+	if user.Project != job.Project && user.Project_access != "ANY" {
+		err = grpc.Errorf(codes.PermissionDenied, "job.Project ≠ user.Project")
 	}
-	job, err := s.Storage.GetJob(in.Id, project)
 	if err != nil {
 		return nil, detailedInternalError(err)
 	}
@@ -86,8 +75,15 @@ func (s *Server) ModifyJob(ctx context.Context, in *Job) (*Job, error) {
 	return ret, nil
 }
 
-func (s *Server) PullPendingJobs(ctx context.Context, in *ListJobsRequest) (*ListOfJobs, error) {
-	pts, err := s.Storage.PullJobs(in.HowMany)
+func (s *Server) PullPendingJobs(ctx context.Context, in *ListJobsKindRequest) (*ListOfJobs, error) {
+	user := getAuthUserFromContext(ctx)
+	kind := in.Kind
+	if user.Kind_access != kind && user.Kind_access != "ANY" {
+		return nil, grpc.Errorf(codes.PermissionDenied, "job.Kind ≠ user.Kind_access")
+	}
+
+	pts, err := s.Storage.PullJobs(in.HowMany, kind)
+
 	if err != nil {
 		return nil, detailedInternalError(err)
 	}
