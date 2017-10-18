@@ -1,3 +1,5 @@
+Disneyland
+========
 
 Development setup
 ---
@@ -38,21 +40,25 @@ certstrap init --common-name "disneyland"
 certstrap request-cert -ip 127.0.0.1
 certstrap sign 127.0.0.1 --CA disneyland
 ```
-`-o` parameter used to provide structured data in format `project.access_to_project.access_to_kind` (three strings separated by `.`)
+`-o` parameter used to provide structured data in format `access_to_project.access_to_jobkind` (two strings separated by `.`)  
 You could provide a certain job access using `access_to_project=[project_name / ANY]` and `access_to_jobkind=[kind_name / ANY]` (`ANY` for full access )
 ```
 # For client
-certstrap request-cert -o ship-shield.ship-shield.docker --cn test-user
+certstrap request-cert -o ship-shield.docker --cn test-user
 certstrap sign test-user --CA disneyland
 ```
 Examples
 ---
 
-to generate client `csr` for user (name "test-user", project "ship-shield", access to project "ship-shield" and access to any kind of jobs) execute following
-`certstrap request-cert -o ship-shield.ship-shield.ANY --cn test-user`
-
-to generate client `csr` for user (name "alex", project "point-finder", access to any project and access to any kind of jobs) execute following
-`certstrap request-cert -o point-finder.ship-ANY.ANY --cn alex`
-
-to generate client `csr` for docker (name "docker", project "ship-shield", access to project "ship-shield" and access to "docker" kind of jobs) execute following
-`certstrap request-cert -o ship-shield.ship-shield.docker --cn docker`
+to generate client `csr` for user (name "test-user", access to project "ship-shield" and access to any kind of jobs) execute following
+```
+certstrap request-cert -o ship-shield.ANY --cn test-user
+```
+to generate client `csr` for docker (name "docker", access to any project and access to "docker" kind of jobs) execute following
+```
+certstrap request-cert -o ANY.docker --cn docker
+```
+to generate client `csr` for user (name "alex", access to any project and access to any kind of jobs) execute following
+```
+certstrap request-cert -o ANY.ANY --cn alex
+```
