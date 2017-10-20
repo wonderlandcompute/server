@@ -33,7 +33,7 @@ Certificates
 
 TLS auth supoort is inspired by this article: https://bbengfort.github.io/programmer/2017/03/03/secure-grpc.html
 
-Full certificate creation workflow [certstrap](https://github.com/square/certstrap) looks like this
+Full certificate creation workflow using [certstrap](https://github.com/square/certstrap) looks like this
 ```
 # For server
 certstrap init --common-name "disneyland"
