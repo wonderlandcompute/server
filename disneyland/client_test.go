@@ -95,7 +95,6 @@ func TestGRPCJobCRUD(t *testing.T) {
 
 	createdJob.Status = Job_PENDING
 	createdJob.Metadata = "meta_test"
-	createdJob.Input = "input_test"
 	createdJob.Output = "output_test"
 	createdJob.Kind = "docker"
 
