@@ -6,12 +6,13 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
+	"strings"
 )
 
 type User struct {
-	Username string
-	Project  string
-	Kind string
+	Username      string
+	ProjectAccess string
+	KindAccess    string
 }
 
 func getAuthUserFromContext(ctx context.Context) User {
@@ -21,11 +22,17 @@ func getAuthUserFromContext(ctx context.Context) User {
 	}
 	return User{}
 }
-
-func (s *Server) AuthFuncOverride(ctx context.Context, fullMethodName string) (context.Context, error) {
-	allowed_endpoints := map[string]bool{
+func parseCertificateFields(field string) (projectAccess string, kindAccess string, err error) {
+	fieldCopy := strings.Split(field, ".")
+	if len(fieldCopy) != 2 {
+		return "", "", grpc.Errorf(codes.DataLoss, "Error processing Organization Name")
 	}
-	if allow, ok := allowed_endpoints[fullMethodName]; allow && ok {
+	return fieldCopy[0], fieldCopy[1], nil
+
+}
+func (s *Server) AuthFuncOverride(ctx context.Context, fullMethodName string) (context.Context, error) {
+	allowedEndpoints := map[string]bool{}
+	if allow, ok := allowedEndpoints[fullMethodName]; allow && ok {
 		return ctx, nil
 	}
 
@@ -44,9 +51,15 @@ func (s *Server) AuthFuncOverride(ctx context.Context, fullMethodName string) (c
 		return nil, grpc.Errorf(codes.Unauthenticated, "Error processing client certificate")
 	}
 
+	projectAccess, kindAccess, err := parseCertificateFields(cert.Subject.Organization[0])
+	if err != nil {
+		return nil, err
+	}
+
 	user := User{
-		Username: cert.Subject.CommonName,
-		Project:  cert.Subject.Organization[0],
+		Username:      cert.Subject.CommonName,
+		KindAccess:    kindAccess,
+		ProjectAccess: projectAccess,
 	}
 	return context.WithValue(ctx, "authorized-user", user), nil
 }

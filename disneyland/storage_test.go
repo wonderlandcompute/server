@@ -21,34 +21,25 @@ func TestJobCRUD(t *testing.T) {
 	}
 
 	job := &Job{
-		Project:     "test_project",
-		Status:      Job_PENDING,
-		Coordinate:  "[0,0]",
-		MetricValue: "9.0",
-		Metadata:    `{"a": 123}`,
-		Kind:        "kind_test",
+		Project:  "test_project",
+		Status:   Job_PENDING,
+		Metadata: `{"a": 123}`,
+		Kind:     "kind_test",
 	}
 
-	created_job, err := storage.CreateJob(job, User{Username: "tester"})
+	createdJob, err := storage.CreateJob(job, User{Username: "tester"})
 	checkTestErr(err, t)
 
-	if created_job == nil {
+	if createdJob == nil {
 		t.Fail()
 	}
 
-	if created_job.Project != job.Project {
+	if createdJob.Project != job.Project {
 		t.Fail()
 	}
 
-	if created_job.Coordinate != job.Coordinate {
+	if createdJob.Metadata != job.Metadata {
 		t.Fail()
 	}
 
-	if created_job.Metadata != job.Metadata {
-		t.Fail()
-	}
-
-	if created_job.MetricValue != job.MetricValue {
-		t.Fail()
-	}
 }

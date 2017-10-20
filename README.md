@@ -1,3 +1,5 @@
+Disneyland
+========
 
 Development setup
 ---
@@ -31,17 +33,32 @@ Certificates
 
 TLS auth supoort is inspired by this article: https://bbengfort.github.io/programmer/2017/03/03/secure-grpc.html
 
-Full certificate creation workflow looks like this
-
+Full certificate creation workflow [certstrap](https://github.com/square/certstrap) looks like this
 ```
-certstrap
-
 # For server
 certstrap init --common-name "disneyland"
 certstrap request-cert -ip 127.0.0.1
 certstrap sign 127.0.0.1 --CA disneyland
-
+```
+`-o` parameter used to provide structured data in format `access_to_project.access_to_jobkind` (two strings separated by `.`)  
+You could provide a certain job access using `access_to_project=[project_name / ANY]` and `access_to_jobkind=[kind_name / ANY]` (`ANY` for full access )
+```
 # For client
-certstrap request-cert -o ship-shield --cn test-user
+certstrap request-cert -o ship-shield.docker --cn test-user
 certstrap sign test-user --CA disneyland
+```
+Examples
+---
+
+to generate client `csr` for user (name "test-user", access to project "ship-shield" and access to any kind of jobs) execute following
+```
+certstrap request-cert -o ship-shield.ANY --cn test-user
+```
+to generate client `csr` for docker (name "docker", access to any project and access to "docker" kind of jobs) execute following
+```
+certstrap request-cert -o ANY.docker --cn docker
+```
+to generate client `csr` for user (name "alex", access to any project and access to any kind of jobs) execute following
+```
+certstrap request-cert -o ANY.ANY --cn alex
 ```

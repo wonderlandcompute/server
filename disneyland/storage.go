@@ -2,7 +2,6 @@ package disneyland
 
 import (
 	"database/sql"
-	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 )
 
@@ -15,9 +14,9 @@ type DisneylandStorage struct {
 	Config DisneylandStorageConfig
 }
 
-func NewDisneylandStorage(db_uri string) (*DisneylandStorage, error) {
+func NewDisneylandStorage(dbUri string) (*DisneylandStorage, error) {
 	ret := &DisneylandStorage{
-		Config: DisneylandStorageConfig{DatabaseURI: db_uri},
+		Config: DisneylandStorageConfig{DatabaseURI: dbUri},
 	}
 
 	err := ret.Connect()
@@ -37,23 +36,20 @@ func (storage *DisneylandStorage) CreateJob(job *Job, creator User) (*Job, error
 		return nil, err
 	}
 
-	created_job := &Job{}
+	createdJob := &Job{}
 	err = tx.QueryRow(`
-		INSERT INTO jobs (project, status, coordinate, metric_value, metadata, creator, input, output, kind)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		RETURNING id, project, status, coordinate, metric_value, metadata, input, output, kind;`,
-		job.Project, job.Status, job.Coordinate, job.MetricValue, job.Metadata,
-		creator.Username, job.Input, job.Output, job.Kind,
+		INSERT INTO jobs (project, status, metadata, creator, input, output, kind)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id, project, status, metadata, input, output, kind;`,
+		job.Project, job.Status, job.Metadata, creator.Username, job.Input, job.Output, job.Kind,
 	).Scan(
-		&created_job.Id,
-		&created_job.Project,
-		&created_job.Status,
-		&created_job.Coordinate,
-		&created_job.MetricValue,
-		&created_job.Metadata,
-		&created_job.Input,
-		&created_job.Output,
-		&created_job.Kind,
+		&createdJob.Id,
+		&createdJob.Project,
+		&createdJob.Status,
+		&createdJob.Metadata,
+		&createdJob.Input,
+		&createdJob.Output,
+		&createdJob.Kind,
 	)
 	if err != nil {
 		return nil, err
@@ -63,55 +59,29 @@ func (storage *DisneylandStorage) CreateJob(job *Job, creator User) (*Job, error
 	if err != nil {
 		tx.Rollback()
 	}
-	return created_job, err
+	return createdJob, err
 }
 
-func (storage *DisneylandStorage) CreateMultipleJobs(jobs []*Job, creator User, project string) ([]*Job, error) {
+func (storage *DisneylandStorage) GetJob(id uint64) (*Job, error) {
 	tx, err := storage.db.Begin()
 	if err != nil {
 		return nil, err
 	}
-	stmt, _ := tx.Prepare(pq.CopyIn("jobs", "project", "status", "coordinate", "metric_value", "metadata", "input", "output", "kind", "creator"))
-	for _, job := range jobs {
-		job.Project = project
-		_, err := stmt.Exec(job.Project, job.Status, job.Coordinate, job.MetricValue, job.Metadata, job.Input, job.Output, job.Kind, creator.Username)
-		if err != nil {
-			return nil, err
-		}
-	}
-	_, err = stmt.Exec()
-	if err != nil {
-		return nil, err
-	}
-	err = tx.Commit()
-	if err != nil {
-		tx.Rollback()
-	}
-	return jobs, err
-}
-
-func (storage *DisneylandStorage) GetJob(id uint64, project string) (*Job, error) {
-	tx, err := storage.db.Begin()
-	if err != nil {
-		return nil, err
-	}
-
 	job := &Job{}
-	err = tx.QueryRow(`
-		SELECT id, project, status, coordinate, metric_value, metadata, input, output, kind FROM jobs
-		WHERE id=$1 AND project=$2;`,
-		id, project,
-	).Scan(
+
+	strQuery := `SELECT id, project, status,  metadata, input, output, kind
+					FROM jobs
+					WHERE id=$1;`
+	err = tx.QueryRow(strQuery, id).Scan(
 		&job.Id,
 		&job.Project,
 		&job.Status,
-		&job.Coordinate,
-		&job.MetricValue,
 		&job.Metadata,
 		&job.Input,
 		&job.Output,
 		&job.Kind,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -123,12 +93,12 @@ func (storage *DisneylandStorage) GetJob(id uint64, project string) (*Job, error
 	return job, err
 }
 
-func (storage *DisneylandStorage) ListJobs(project string) (*ListOfJobs, error) {
-	query := `SELECT id, project, status, coordinate, metric_value, metadata, input, output, kind
-		FROM jobs
-		WHERE project=$1;`
+func (storage *DisneylandStorage) ListJobs(project string, kind string) (*ListOfJobs, error) {
+	strQuery := `SELECT id, project, status, metadata, input, output, kind
+			  FROM jobs
+			  WHERE project=$1 and kind=$2;`
 
-	rows, err := storage.db.Query(query, project)
+	rows, err := storage.db.Query(strQuery, project, kind)
 	if err != nil {
 		return nil, err
 	}
@@ -143,8 +113,6 @@ func (storage *DisneylandStorage) ListJobs(project string) (*ListOfJobs, error) 
 			&job.Id,
 			&job.Project,
 			&job.Status,
-			&job.Coordinate,
-			&job.MetricValue,
 			&job.Metadata,
 			&job.Input,
 			&job.Output,
@@ -167,85 +135,82 @@ func (storage *DisneylandStorage) UpdateJob(job *Job) (*Job, error) {
 		return nil, err
 	}
 
-	result_job := &Job{}
+	resultJob := &Job{}
 	err = tx.QueryRow(`
 		UPDATE jobs
 		SET
 			status=$1,
-			metric_value=$2,
-			metadata=$3,
-			input=$4,
-			output=$5,
-			kind=$6
-		WHERE id=$7 and project=$8
-		RETURNING id, project, status, coordinate, metric_value, metadata, input, output, kind;`,
+			metadata=$2,
+			output=$3,
+			kind=$4
+		WHERE id=$5 and project=$6
+		RETURNING id, project, status, metadata, input, output, kind;`,
 		job.Status,
-		job.MetricValue,
 		job.Metadata,
-		job.Input,
 		job.Output,
 		job.Kind,
 		job.Id,
 		job.Project,
 	).Scan(
-		&result_job.Id,
-		&result_job.Project,
-		&result_job.Status,
-		&result_job.Coordinate,
-		&result_job.MetricValue,
-		&result_job.Metadata,
-		&result_job.Input,
-		&result_job.Output,
-		&result_job.Kind,
+		&resultJob.Id,
+		&resultJob.Project,
+		&resultJob.Status,
+		&resultJob.Metadata,
+		&resultJob.Input,
+		&resultJob.Output,
+		&resultJob.Kind,
 	)
 	if err != nil {
-		return result_job, err
+		return resultJob, err
 	}
 	err = tx.Commit()
 	if err != nil {
 		tx.Rollback()
-		return result_job, err
+		return resultJob, err
 	}
 
-	return result_job, err
+	return resultJob, err
 }
 
-func (storage *DisneylandStorage) PullJobs(how_many uint32) ([]*Job, error) {
+func (storage *DisneylandStorage) PullJobs(how_many uint32, kind string) ([]*Job, error) {
 	tx, err := storage.db.Begin()
 	if err != nil {
 		return nil, err
 	}
-
-	result_jobs := []*Job{}
-	rows, err := tx.Query(`
-		WITH pulled_pts as (
+	resultJobs := []*Job{}
+	sqlStr := `
+	WITH updatedPts as (
+		WITH pulledPts as (
 			SELECT id, project, kind
 			FROM jobs
-			WHERE status=$1
-			LIMIT $2
+			WHERE status=$1 and kind=$2
+			LIMIT $3
 			FOR UPDATE SKIP LOCKED
 		)
 		UPDATE jobs pts
-		SET status=$3
-		FROM pulled_pts
-		WHERE pulled_pts.id=pts.id and pulled_pts.project=pts.project and pulled_pts.kind=pts.kind
-		RETURNING pts.id, pts.project, pts.status, pts.coordinate, pts.metric_value, pts.metadata, pts.input, pts.output, pts.kind;`,
-		Job_PENDING,
-		how_many,
-		Job_PULLED,
+		SET status=$4
+		FROM pulledPts
+		WHERE pulledPts.id=pts.id and pulledPts.project=pts.project and pulledPts.kind=pts.kind
+		RETURNING pts.id, pts.project, pts.status, pts.metadata, pts.input, pts.output, pts.kind
 	)
+	SELECT *
+	FROM updatedPts
+	ORDER BY id ASC;`
+
+	rows, err := tx.Query(sqlStr, Job_PENDING, kind, how_many, Job_PULLED)
+
 	if err != nil {
 		return nil, err
 	}
 
 	for rows.Next() {
 		job := Job{}
-		err = rows.Scan(&job.Id, &job.Project, &job.Status, &job.Coordinate, &job.MetricValue, &job.Metadata, &job.Input, &job.Output, &job.Kind)
+		err = rows.Scan(&job.Id, &job.Project, &job.Status, &job.Metadata, &job.Input, &job.Output, &job.Kind)
 		if err != nil {
 			return nil, err
 		}
 
-		result_jobs = append(result_jobs, &job)
+		resultJobs = append(resultJobs, &job)
 	}
 
 	err = tx.Commit()
@@ -254,5 +219,5 @@ func (storage *DisneylandStorage) PullJobs(how_many uint32) ([]*Job, error) {
 		return nil, err
 	}
 
-	return result_jobs, err
+	return resultJobs, err
 }

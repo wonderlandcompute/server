@@ -25,8 +25,8 @@ var TestsConfig *DisneylandTestsConfig
 
 func initTestsConfig() {
 	TestsConfig = &DisneylandTestsConfig{}
-	config_path := os.Getenv("DISNEYLAND_TESTS_CONFIG")
-	content, err := ioutil.ReadFile(config_path)
+	configPath := os.Getenv("DISNEYLAND_TESTS_CONFIG")
+	content, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		log.Fatalf("Error loading config: %v", err)
 	}
@@ -63,8 +63,6 @@ func checkJobsEqual(a *Job, b *Job) bool {
 	return (a.Project == b.Project) &&
 		(a.Id == b.Id) &&
 		(a.Status == b.Status) &&
-		(a.Coordinate == b.Coordinate) &&
-		(a.MetricValue == b.MetricValue) &&
 		(a.Metadata == b.Metadata) &&
 		(a.Kind == b.Kind) &&
 		(a.Output == b.Output) &&
@@ -85,49 +83,44 @@ func TestGRPCJobCRUD(t *testing.T) {
 
 	ctx := context.Background()
 
-	created_job, err := c.CreateJob(ctx, &Job{})
+	createdJob, err := c.CreateJob(ctx, &Job{Status: Job_PENDING})
 	checkTestErr(err, t)
 
-	read_job, err := c.GetJob(ctx, &RequestWithId{Id: created_job.Id})
+	readJob, err := c.GetJob(ctx, &RequestWithId{Id: createdJob.Id})
 	checkTestErr(err, t)
 
-	if !checkJobsEqual(created_job, read_job) {
+	if !checkJobsEqual(createdJob, readJob) {
 		t.Fail()
 	}
 
-	created_job.Status = Job_FAILED
-	created_job.MetricValue = "metric_test"
-	created_job.Metadata = "meta_test"
-	created_job.Input = "input_test"
-	created_job.Output = "output_test"
-	created_job.Kind = "kind_test"
+	createdJob.Status = Job_PENDING
+	createdJob.Metadata = "meta_test"
+	createdJob.Input = "input_test"
+	createdJob.Output = "output_test"
+	createdJob.Kind = "docker"
 
-	updated_job, err := c.ModifyJob(ctx, created_job)
+	updatedJob, err := c.ModifyJob(ctx, createdJob)
 	checkTestErr(err, t)
 
-	if !checkJobsEqual(created_job, updated_job) {
+	if !checkJobsEqual(createdJob, updatedJob) {
 		t.Fail()
 	}
 
-	created_job, err = c.CreateJob(ctx, &Job{Coordinate: "second"})
+	createdJob, err = c.CreateJob(ctx, &Job{})
 	checkTestErr(err, t)
 
-	all_jobs, err := c.ListJobs(ctx, &ListJobsRequest{})
+	allJobs, err := c.ListJobs(ctx, &ListJobsRequest{HowMany: 2, Kind: "docker"})
 	checkTestErr(err, t)
 
-	if len(all_jobs.Jobs) != 2 {
+	if len(allJobs.Jobs) < 1 {
 		t.Fail()
 	}
 
-	pulled_jobs, err := c.PullPendingJobs(ctx, &ListJobsRequest{HowMany: 2})
+	pulledJobs, err := c.PullPendingJobs(ctx, &ListJobsRequest{HowMany: 2, Kind: "docker"})
 	checkTestErr(err, t)
 
-	if len(pulled_jobs.Jobs) != 1 {
+	if len(pulledJobs.Jobs) < 1 {
 		t.Fail()
 	}
 
-	multiple_jobs, err := c.CreateMultipleJobs(ctx, &ListOfJobs{Jobs: []*Job{&Job{Input: "mul1"}, &Job{Input: "mul2"}}})
-	if len(multiple_jobs.Jobs) != 2 {
-		t.Fail()
-	}
 }
