@@ -18,7 +18,28 @@ func detailedInternalError(err error) error {
 		fmt.Sprintf("Error processing job: %v", err),
 	)
 }
+func validateAccess(project string, userProject string, kind string, userKind string) (string, string, error) {
+	if kind == "" {
+		if userKind == "ANY" {
+			return "", "", grpc.Errorf(codes.DataLoss, "ListJobsKindRequest.Kind not specified")
+		}
+		kind = userKind
+	}
+	if project == "" {
+		if userProject == "ANY" {
+			return "", "", grpc.Errorf(codes.DataLoss, "ListJobsKindRequest.Project not specified")
+		}
+		project = userProject
+	}
 
+	if userKind != kind && userKind != "ANY" {
+		return "", "", grpc.Errorf(codes.PermissionDenied, "job.Kind ≠ user.KindAccess")
+	}
+	if userProject != project && userProject != "ANY" {
+		return "", "", grpc.Errorf(codes.PermissionDenied, "job.Project ≠ user.ProjectAccess")
+	}
+	return project, kind, nil
+}
 func (s *Server) Init() {
 }
 
@@ -64,25 +85,12 @@ func (s *Server) ListJobs(ctx context.Context, in *ListJobsRequest) (*ListOfJobs
 	userProject := user.ProjectAccess
 	kind := in.Kind
 	project := in.Project
-	if kind == "" {
-		if userKind == "ANY" {
-			return nil, grpc.Errorf(codes.DataLoss, "ListJobsKindRequest.Kind not specified")
-		}
-		kind = userKind
-	}
-	if project == "" {
-		if userProject == "ANY" {
-			return nil, grpc.Errorf(codes.DataLoss, "ListJobsKindRequest.Project not specified")
-		}
-		project = userProject
+
+	project, kind, err := validateAccess(project, userProject, kind, userKind)
+	if err != nil {
+		return nil, detailedInternalError(err)
 	}
 
-	if userKind != kind && userKind != "ANY" {
-		return nil, grpc.Errorf(codes.PermissionDenied, "job.Kind ≠ user.KindAccess")
-	}
-	if userProject != project && userProject != "ANY" {
-		return nil, grpc.Errorf(codes.PermissionDenied, "job.Project ≠ user.ProjectAccess")
-	}
 	ret, err := s.Storage.ListJobs(project, kind)
 	if err != nil {
 		return nil, detailedInternalError(err)
@@ -117,24 +125,9 @@ func (s *Server) PullPendingJobs(ctx context.Context, in *ListJobsRequest) (*Lis
 	userProject := user.ProjectAccess
 	project := in.Project
 
-	if kind == "" {
-		if userKind == "ANY" {
-			return nil, grpc.Errorf(codes.DataLoss, "ListJobsKindRequest.Kind not specified")
-		}
-		kind = userKind
-	}
-	if project == "" {
-		if userProject == "ANY" {
-			return nil, grpc.Errorf(codes.DataLoss, "ListJobsKindRequest.Project not specified")
-		}
-		project = userProject
-	}
-
-	if userKind != kind && userKind != "ANY" {
-		return nil, grpc.Errorf(codes.PermissionDenied, "job.Kind ≠ user.KindAccess")
-	}
-	if userProject != project && userProject != "ANY" {
-		return nil, grpc.Errorf(codes.PermissionDenied, "job.Project ≠ user.ProjectAccess")
+	project, kind, err := validateAccess(project, userProject, kind, userKind)
+	if err != nil {
+		return nil, detailedInternalError(err)
 	}
 
 	pts, err := s.Storage.PullJobs(in.HowMany, kind)
