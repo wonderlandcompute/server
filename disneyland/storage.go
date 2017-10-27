@@ -92,24 +92,14 @@ func (storage *DisneylandStorage) GetJob(id uint64) (*Job, error) {
 	}
 	return job, err
 }
-
-func (storage *DisneylandStorage) ListJobs(project string, kind string) (*ListOfJobs, error) {
-	strQuery := `SELECT id, project, status, metadata, input, output, kind
-			  FROM jobs
-			  WHERE project=$1 and kind=$2;`
-
-	rows, err := storage.db.Query(strQuery, project, kind)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
+func queryJobs(rows *sql.Rows) (*ListOfJobs, error) {
 	ret := &ListOfJobs{Jobs: []*Job{}}
+	var err error
 
 	for rows.Next() {
 		job := &Job{}
 
-		err = rows.Scan(
+		err := rows.Scan(
 			&job.Id,
 			&job.Project,
 			&job.Status,
@@ -124,7 +114,26 @@ func (storage *DisneylandStorage) ListJobs(project string, kind string) (*ListOf
 		}
 		ret.Jobs = append(ret.Jobs, job)
 	}
+	return ret, err
+}
 
+func (storage *DisneylandStorage) ListJobs(howmany uint32, project string, kind string) (*ListOfJobs, error) {
+	strQuery := `SELECT id, project, status, metadata, input, output, kind
+				 FROM jobs
+				 WHERE project LIKE '%' || $1 || '%' AND kind LIKE '%' || $2 || '%'
+				 LIMIT $3;`
+
+	rows, err := storage.db.Query(strQuery, project, kind, howmany)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	ret, err := queryJobs(rows)
+	if err != nil {
+		return nil, err
+	}
 	err = rows.Err()
 	return ret, err
 }
@@ -143,14 +152,13 @@ func (storage *DisneylandStorage) UpdateJob(job *Job) (*Job, error) {
 			metadata=$2,
 			output=$3,
 			kind=$4
-		WHERE id=$5 and project=$6
+		WHERE id=$5
 		RETURNING id, project, status, metadata, input, output, kind;`,
 		job.Status,
 		job.Metadata,
 		job.Output,
 		job.Kind,
 		job.Id,
-		job.Project,
 	).Scan(
 		&resultJob.Id,
 		&resultJob.Project,
@@ -172,45 +180,35 @@ func (storage *DisneylandStorage) UpdateJob(job *Job) (*Job, error) {
 	return resultJob, err
 }
 
-func (storage *DisneylandStorage) PullJobs(how_many uint32, kind string) ([]*Job, error) {
+func (storage *DisneylandStorage) PullJobs(how_many uint32, project string, kind string) (*ListOfJobs, error) {
 	tx, err := storage.db.Begin()
 	if err != nil {
 		return nil, err
 	}
-	resultJobs := []*Job{}
-	sqlStr := `
-	WITH updatedPts as (
-		WITH pulledPts as (
-			SELECT id, project, kind
-			FROM jobs
-			WHERE status=$1 and kind=$2
-			LIMIT $3
-			FOR UPDATE SKIP LOCKED
-		)
-		UPDATE jobs pts
-		SET status=$4
-		FROM pulledPts
-		WHERE pulledPts.id=pts.id and pulledPts.project=pts.project and pulledPts.kind=pts.kind
-		RETURNING pts.id, pts.project, pts.status, pts.metadata, pts.input, pts.output, pts.kind
-	)
-	SELECT *
-	FROM updatedPts
-	ORDER BY id ASC;`
+	strQuery := `WITH updatedPts AS (
+					WITH pulledPts AS (
+						SELECT id, project, kind
+						FROM jobs
+						WHERE status=$1 AND project LIKE '%' || $2 || '%' AND kind LIKE '%' || $3 || '%'
+						LIMIT $4
+						FOR UPDATE SKIP LOCKED)
+					UPDATE jobs pts
+					SET status=$5
+					FROM pulledPts
+					WHERE pulledPts.id=pts.id AND pulledPts.project=pts.project AND pulledPts.kind=pts.kind
+					RETURNING pts.id, pts.project, pts.status, pts.metadata, pts.input, pts.output, pts.kind)
+				SELECT *
+				FROM updatedPts
+				ORDER BY id ASC;`
 
-	rows, err := tx.Query(sqlStr, Job_PENDING, kind, how_many, Job_PULLED)
+	rows, err := tx.Query(strQuery, Job_PENDING, project, kind, how_many, Job_PULLED)
 
 	if err != nil {
 		return nil, err
 	}
-
-	for rows.Next() {
-		job := Job{}
-		err = rows.Scan(&job.Id, &job.Project, &job.Status, &job.Metadata, &job.Input, &job.Output, &job.Kind)
-		if err != nil {
-			return nil, err
-		}
-
-		resultJobs = append(resultJobs, &job)
+	ret, err := queryJobs(rows)
+	if err != nil {
+		return nil, err
 	}
 
 	err = tx.Commit()
@@ -219,5 +217,30 @@ func (storage *DisneylandStorage) PullJobs(how_many uint32, kind string) ([]*Job
 		return nil, err
 	}
 
-	return resultJobs, err
+	return ret, err
+}
+
+func (storage *DisneylandStorage) DeleteJob(id uint64, userProject string) (*Job, error) {
+	tx, err := storage.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	resultJob := &Job{}
+	err = tx.QueryRow(`
+		DELETE FROM jobs
+		WHERE id=$1 AND project=$2
+		RETURNING id, project, kind;`, id, userProject,
+	).Scan(
+		&resultJob.Id,
+		&resultJob.Project,
+		&resultJob.Kind,
+	)
+	if err != nil {
+		return resultJob, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+	}
+	return resultJob, err
 }

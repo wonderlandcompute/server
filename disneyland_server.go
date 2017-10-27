@@ -77,7 +77,6 @@ func main() {
 	server := &disneyland.Server{
 		Storage: storage,
 	}
-	server.Init()
 
 	logger := &logrus.Logger{
 		Out:       os.Stderr,

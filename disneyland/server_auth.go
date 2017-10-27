@@ -9,12 +9,6 @@ import (
 	"strings"
 )
 
-type User struct {
-	Username      string
-	ProjectAccess string
-	KindAccess    string
-}
-
 func getAuthUserFromContext(ctx context.Context) User {
 	v := ctx.Value("authorized-user")
 	if v != nil {
