@@ -82,7 +82,7 @@ func TestGRPCJobCRUD(t *testing.T) {
 	c := NewDisneylandClient(conn)
 
 	ctx := context.Background()
-
+	//first
 	createdJob, err := c.CreateJob(ctx, &Job{Status: Job_PENDING})
 	checkTestErr(err, t)
 
@@ -94,8 +94,8 @@ func TestGRPCJobCRUD(t *testing.T) {
 	}
 
 	createdJob.Status = Job_PENDING
-	createdJob.Metadata = "meta_test"
-	createdJob.Output = "output_test"
+	createdJob.Metadata = "updated_test"
+	createdJob.Output = "updated_test"
 	createdJob.Kind = "docker"
 
 	updatedJob, err := c.ModifyJob(ctx, createdJob)
@@ -104,25 +104,41 @@ func TestGRPCJobCRUD(t *testing.T) {
 	if !checkJobsEqual(createdJob, updatedJob) {
 		t.Fail()
 	}
-
-	createdJob, err = c.CreateJob(ctx, &Job{})
+	//second
+	createdJob, err = c.CreateJob(ctx, &Job{Kind: "docker"})
 	checkTestErr(err, t)
 
-	allJobs, err := c.ListJobs(ctx, &ListJobsRequest{HowMany: 2})
+	allJobs, err := c.ListJobs(ctx, &ListJobsRequest{HowMany: 0})
 	checkTestErr(err, t)
 
-	if len(allJobs.Jobs) < 1 {
+	if len(allJobs.Jobs) != 2 {
 		t.Fail()
 	}
 
-	pulledJobs, err := c.PullPendingJobs(ctx, &ListJobsRequest{HowMany: 2})
+	allJobs, err = c.ListJobs(ctx, &ListJobsRequest{HowMany: 1})
 	checkTestErr(err, t)
 
-	if len(pulledJobs.Jobs) < 1 {
+	if len(allJobs.Jobs) != 1 {
 		t.Fail()
 	}
 
-	_, err = c.DeleteJob(ctx, &RequestWithId{Id: 2})
+	allJobs, err = c.ListJobs(ctx, &ListJobsRequest{Kind: "docker", HowMany:2})
 	checkTestErr(err, t)
 
+	if len(allJobs.Jobs) != 2 {
+		t.Fail()
+	}
+
+	pulledJobs, err := c.PullPendingJobs(ctx, &ListJobsRequest{HowMany: 1})
+	checkTestErr(err, t)
+
+	if len(pulledJobs.Jobs) != 1 {
+		t.Fail()
+	}
+	//third
+	createdJob, err = c.CreateJob(ctx, &Job{Kind: "remove"})
+	checkTestErr(err, t)
+
+	_, err = c.DeleteJob(ctx, &RequestWithId{Id: createdJob.Id})
+	checkTestErr(err, t)
 }

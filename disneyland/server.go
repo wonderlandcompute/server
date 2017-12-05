@@ -95,6 +95,7 @@ func (s *Server) PullPendingJobs(ctx context.Context, in *ListJobsRequest) (*Lis
 	if user.IsUser() {
 		in.Project = user.ProjectAccess
 	}
+
 	pts, err := s.Storage.PullJobs(in.HowMany, in.Project, in.Kind)
 
 	if err != nil {

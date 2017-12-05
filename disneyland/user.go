@@ -8,7 +8,7 @@ type User struct {
 
 func (u *User) IsUser() bool {
 	// if user
-	if u.ProjectAccess != "ANY" && u.KindAccess == "ANY" {
+	if u.ProjectAccess != "ANY" {
 		return true
 	}
 	return false

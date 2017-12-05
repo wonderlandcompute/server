@@ -25,3 +25,4 @@ vendor
 build/
 configs/
 
+.DS_Store

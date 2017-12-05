@@ -3,7 +3,26 @@ package disneyland
 import (
 	"database/sql"
 	_ "github.com/lib/pq"
+	"strconv"
 )
+
+const PULLINGSTRQ_1 = `WITH updatedPts AS (
+					WITH pulledPts AS (
+						SELECT id, project, kind
+						FROM jobs
+						WHERE status=$1`
+const PULLINGSTRQ_2 = ` FOR UPDATE SKIP LOCKED)
+					UPDATE jobs pts
+					SET status=$2
+					FROM pulledPts
+					WHERE pulledPts.id=pts.id AND pulledPts.project=pts.project AND pulledPts.kind=pts.kind
+					RETURNING pts.id, pts.project, pts.status, pts.metadata, pts.input, pts.output, pts.kind)
+				SELECT *
+				FROM updatedPts
+				ORDER BY id ASC;`
+const LISTSTRQ_1 = `SELECT id, project, status, metadata, input, output, kind
+				 FROM jobs
+				 WHERE`
 
 type DisneylandStorageConfig struct {
 	DatabaseURI string `json:"db_uri"`
@@ -92,6 +111,7 @@ func (storage *DisneylandStorage) GetJob(id uint64) (*Job, error) {
 	}
 	return job, err
 }
+
 func queryJobs(rows *sql.Rows) (*ListOfJobs, error) {
 	ret := &ListOfJobs{Jobs: []*Job{}}
 	var err error
@@ -118,12 +138,56 @@ func queryJobs(rows *sql.Rows) (*ListOfJobs, error) {
 }
 
 func (storage *DisneylandStorage) ListJobs(howmany uint32, project string, kind string) (*ListOfJobs, error) {
-	strQuery := `SELECT id, project, status, metadata, input, output, kind
-				 FROM jobs
-				 WHERE project LIKE '%' || $1 || '%' AND kind LIKE '%' || $2 || '%'
-				 LIMIT $3;`
+	tx, err := storage.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	var rows *sql.Rows
+	projectFlag := false
+	kindFlag := false
+	limitFlag := false
 
-	rows, err := storage.db.Query(strQuery, project, kind, howmany)
+	strQuery := LISTSTRQ_1
+	inc := 1
+	if project != "" {
+		strQuery += " project=$"
+		strQuery += strconv.Itoa(inc)
+		inc++
+		projectFlag = true
+	}
+	if kind != "" {
+		if projectFlag {
+			strQuery += " AND kind=$"
+		} else {
+			strQuery += " kind=$"
+		}
+		strQuery += strconv.Itoa(inc)
+		inc++
+		kindFlag = true
+	}
+	if howmany != 0 {
+		strQuery += " LIMIT $"
+		strQuery += strconv.Itoa(inc)
+		inc++
+		limitFlag = true
+	}
+	strQuery += `;`
+
+	if projectFlag {
+		if kindFlag {
+			if limitFlag {
+				rows, err = tx.Query(strQuery, project, kind, howmany)
+			} else {
+				rows, err = tx.Query(strQuery, project, kind)
+			}
+		} else if limitFlag {
+			rows, err = tx.Query(strQuery, project, howmany)
+		} else {
+			rows, err = tx.Query(strQuery, project)
+		}
+	} else if limitFlag {
+		rows, err = tx.Query(strQuery, kind, howmany)
+	}
 
 	if err != nil {
 		return nil, err
@@ -180,32 +244,58 @@ func (storage *DisneylandStorage) UpdateJob(job *Job) (*Job, error) {
 	return resultJob, err
 }
 
-func (storage *DisneylandStorage) PullJobs(how_many uint32, project string, kind string) (*ListOfJobs, error) {
+func (storage *DisneylandStorage) PullJobs(howmany uint32, project string, kind string) (*ListOfJobs, error) {
 	tx, err := storage.db.Begin()
 	if err != nil {
 		return nil, err
 	}
-	strQuery := `WITH updatedPts AS (
-					WITH pulledPts AS (
-						SELECT id, project, kind
-						FROM jobs
-						WHERE status=$1 AND project LIKE '%' || $2 || '%' AND kind LIKE '%' || $3 || '%'
-						LIMIT $4
-						FOR UPDATE SKIP LOCKED)
-					UPDATE jobs pts
-					SET status=$5
-					FROM pulledPts
-					WHERE pulledPts.id=pts.id AND pulledPts.project=pts.project AND pulledPts.kind=pts.kind
-					RETURNING pts.id, pts.project, pts.status, pts.metadata, pts.input, pts.output, pts.kind)
-				SELECT *
-				FROM updatedPts
-				ORDER BY id ASC;`
+	var rows *sql.Rows
+	projectFlag := false
+	kindFlag := false
+	limitFlag := false
 
-	rows, err := tx.Query(strQuery, Job_PENDING, project, kind, how_many, Job_PULLED)
+	strQuery := PULLINGSTRQ_1
+	inc := 3
+	if project != "" {
+		strQuery += " AND project=$"
+		strQuery += strconv.Itoa(inc)
+		inc++
+		projectFlag = true
+	}
+	if kind != "" {
+		strQuery += " AND kind=$"
+		strQuery += strconv.Itoa(inc)
+		inc++
+		kindFlag = true
+	}
+	if howmany != 0 {
+		strQuery += " LIMIT $"
+		strQuery += strconv.Itoa(inc)
+		inc++
+		limitFlag = true
+	}
+	strQuery += PULLINGSTRQ_2
+
+	if projectFlag {
+		if kindFlag {
+			if limitFlag {
+				rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, project, kind, howmany)
+			} else {
+				rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, project, kind)
+			}
+		} else if limitFlag {
+			rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, project, howmany)
+		} else {
+			rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, project)
+		}
+	} else if limitFlag {
+		rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, kind, howmany)
+	}
 
 	if err != nil {
 		return nil, err
 	}
+
 	ret, err := queryJobs(rows)
 	if err != nil {
 		return nil, err
