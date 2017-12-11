@@ -122,7 +122,7 @@ func TestGRPCJobCRUD(t *testing.T) {
 		t.Fail()
 	}
 
-	allJobs, err = c.ListJobs(ctx, &ListJobsRequest{Kind: "docker", HowMany:2})
+	allJobs, err = c.ListJobs(ctx, &ListJobsRequest{Kind: "docker", HowMany: 2})
 	checkTestErr(err, t)
 
 	if len(allJobs.Jobs) != 2 {

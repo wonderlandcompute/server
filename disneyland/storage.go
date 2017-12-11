@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	_ "github.com/lib/pq"
 	"strconv"
+	"time"
 )
 
 const PULLINGSTRQ_1 = `WITH updatedPts AS (
@@ -13,7 +14,7 @@ const PULLINGSTRQ_1 = `WITH updatedPts AS (
 						WHERE status=$1`
 const PULLINGSTRQ_2 = ` FOR UPDATE SKIP LOCKED)
 					UPDATE jobs pts
-					SET status=$2
+					SET status=$2, last_modified=$3
 					FROM pulledPts
 					WHERE pulledPts.id=pts.id AND pulledPts.project=pts.project AND pulledPts.kind=pts.kind
 					RETURNING pts.id, pts.project, pts.status, pts.metadata, pts.input, pts.output, pts.kind)
@@ -49,6 +50,35 @@ func (storage *DisneylandStorage) Connect() error {
 	return err
 }
 
+func queryJobs(rows *sql.Rows) (*ListOfJobs, error) {
+	ret := &ListOfJobs{Jobs: []*Job{}}
+	var err error
+
+	for rows.Next() {
+		job := &Job{}
+
+		err := rows.Scan(
+			&job.Id,
+			&job.Project,
+			&job.Status,
+			&job.Metadata,
+			&job.Input,
+			&job.Output,
+			&job.Kind,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+		ret.Jobs = append(ret.Jobs, job)
+	}
+	return ret, err
+}
+
+func getTime() (time.Time) {
+	return time.Now().UTC()
+}
+
 func (storage *DisneylandStorage) CreateJob(job *Job, creator User) (*Job, error) {
 	tx, err := storage.db.Begin()
 	if err != nil {
@@ -56,6 +86,7 @@ func (storage *DisneylandStorage) CreateJob(job *Job, creator User) (*Job, error
 	}
 
 	createdJob := &Job{}
+
 	err = tx.QueryRow(`
 		INSERT INTO jobs (project, status, metadata, creator, input, output, kind)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -86,6 +117,7 @@ func (storage *DisneylandStorage) GetJob(id uint64) (*Job, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	job := &Job{}
 
 	strQuery := `SELECT id, project, status,  metadata, input, output, kind
@@ -112,43 +144,20 @@ func (storage *DisneylandStorage) GetJob(id uint64) (*Job, error) {
 	return job, err
 }
 
-func queryJobs(rows *sql.Rows) (*ListOfJobs, error) {
-	ret := &ListOfJobs{Jobs: []*Job{}}
-	var err error
-
-	for rows.Next() {
-		job := &Job{}
-
-		err := rows.Scan(
-			&job.Id,
-			&job.Project,
-			&job.Status,
-			&job.Metadata,
-			&job.Input,
-			&job.Output,
-			&job.Kind,
-		)
-
-		if err != nil {
-			return nil, err
-		}
-		ret.Jobs = append(ret.Jobs, job)
-	}
-	return ret, err
-}
-
 func (storage *DisneylandStorage) ListJobs(howmany uint32, project string, kind string) (*ListOfJobs, error) {
 	tx, err := storage.db.Begin()
 	if err != nil {
 		return nil, err
 	}
+
 	var rows *sql.Rows
 	projectFlag := false
 	kindFlag := false
 	limitFlag := false
+	inc := 1
 
 	strQuery := LISTSTRQ_1
-	inc := 1
+
 	if project != "" {
 		strQuery += " project=$"
 		strQuery += strconv.Itoa(inc)
@@ -165,6 +174,7 @@ func (storage *DisneylandStorage) ListJobs(howmany uint32, project string, kind 
 		inc++
 		kindFlag = true
 	}
+
 	if howmany != 0 {
 		strQuery += " LIMIT $"
 		strQuery += strconv.Itoa(inc)
@@ -208,20 +218,24 @@ func (storage *DisneylandStorage) UpdateJob(job *Job) (*Job, error) {
 		return nil, err
 	}
 
+	curTime := getTime()
 	resultJob := &Job{}
+
 	err = tx.QueryRow(`
 		UPDATE jobs
 		SET
 			status=$1,
 			metadata=$2,
 			output=$3,
-			kind=$4
-		WHERE id=$5
+			kind=$4,
+			last_modified=$5
+		WHERE id=$6
 		RETURNING id, project, status, metadata, input, output, kind;`,
 		job.Status,
 		job.Metadata,
 		job.Output,
 		job.Kind,
+		curTime,
 		job.Id,
 	).Scan(
 		&resultJob.Id,
@@ -249,13 +263,15 @@ func (storage *DisneylandStorage) PullJobs(howmany uint32, project string, kind 
 	if err != nil {
 		return nil, err
 	}
+
 	var rows *sql.Rows
 	projectFlag := false
 	kindFlag := false
 	limitFlag := false
+	curTime := getTime()
+	inc := 4
 
 	strQuery := PULLINGSTRQ_1
-	inc := 3
 	if project != "" {
 		strQuery += " AND project=$"
 		strQuery += strconv.Itoa(inc)
@@ -279,17 +295,17 @@ func (storage *DisneylandStorage) PullJobs(howmany uint32, project string, kind 
 	if projectFlag {
 		if kindFlag {
 			if limitFlag {
-				rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, project, kind, howmany)
+				rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, curTime, project, kind, howmany)
 			} else {
-				rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, project, kind)
+				rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, curTime, project, kind)
 			}
 		} else if limitFlag {
-			rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, project, howmany)
+			rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, curTime, project, howmany)
 		} else {
-			rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, project)
+			rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, curTime, project)
 		}
 	} else if limitFlag {
-		rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, kind, howmany)
+		rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, curTime, kind, howmany)
 	}
 
 	if err != nil {
@@ -315,7 +331,9 @@ func (storage *DisneylandStorage) DeleteJob(id uint64, userProject string) (*Job
 	if err != nil {
 		return nil, err
 	}
+
 	resultJob := &Job{}
+
 	err = tx.QueryRow(`
 		DELETE FROM jobs
 		WHERE id=$1 AND project=$2
