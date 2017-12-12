@@ -145,11 +145,6 @@ func (storage *DisneylandStorage) GetJob(id uint64) (*Job, error) {
 }
 
 func (storage *DisneylandStorage) ListJobs(howmany uint32, project string, kind string) (*ListOfJobs, error) {
-	tx, err := storage.db.Begin()
-	if err != nil {
-		return nil, err
-	}
-
 	var rows *sql.Rows
 	projectFlag := false
 	kindFlag := false
@@ -183,20 +178,21 @@ func (storage *DisneylandStorage) ListJobs(howmany uint32, project string, kind 
 	}
 	strQuery += `;`
 
+	var err error
 	if projectFlag {
 		if kindFlag {
 			if limitFlag {
-				rows, err = tx.Query(strQuery, project, kind, howmany)
+				rows, err = storage.db.Query(strQuery, project, kind, howmany)
 			} else {
-				rows, err = tx.Query(strQuery, project, kind)
+				rows, err = storage.db.Query(strQuery, project, kind)
 			}
 		} else if limitFlag {
-			rows, err = tx.Query(strQuery, project, howmany)
+			rows, err = storage.db.Query(strQuery, project, howmany)
 		} else {
-			rows, err = tx.Query(strQuery, project)
+			rows, err = storage.db.Query(strQuery, project)
 		}
 	} else if limitFlag {
-		rows, err = tx.Query(strQuery, kind, howmany)
+		rows, err = storage.db.Query(strQuery, kind, howmany)
 	}
 
 	if err != nil {
