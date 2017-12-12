@@ -75,7 +75,7 @@ func queryJobs(rows *sql.Rows) (*ListOfJobs, error) {
 	return ret, err
 }
 
-func getTime() (time.Time) {
+func getTime() time.Time {
 	return time.Now().UTC()
 }
 
@@ -223,14 +223,12 @@ func (storage *DisneylandStorage) UpdateJob(job *Job) (*Job, error) {
 			status=$1,
 			metadata=$2,
 			output=$3,
-			kind=$4,
-			last_modified=$5
-		WHERE id=$6
+			last_modified=$4
+		WHERE id=$5
 		RETURNING id, project, status, metadata, input, output, kind;`,
 		job.Status,
 		job.Metadata,
 		job.Output,
-		job.Kind,
 		curTime,
 		job.Id,
 	).Scan(
