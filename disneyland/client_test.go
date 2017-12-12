@@ -83,11 +83,15 @@ func TestGRPCJobCRUD(t *testing.T) {
 
 	ctx := context.Background()
 	//first
-	createdJob, err := c.CreateJob(ctx, &Job{Status: Job_PENDING})
+	createdJob, err := c.CreateJob(ctx, &Job{})
 	checkTestErr(err, t)
 
 	readJob, err := c.GetJob(ctx, &RequestWithId{Id: createdJob.Id})
 	checkTestErr(err, t)
+
+	if readJob.Status != Job_PENDING {
+		t.Fail()
+	}
 
 	if !checkJobsEqual(createdJob, readJob) {
 		t.Fail()
@@ -112,6 +116,10 @@ func TestGRPCJobCRUD(t *testing.T) {
 	checkTestErr(err, t)
 
 	if len(allJobs.Jobs) != 2 {
+		t.Fail()
+	}
+
+	if createdJob.Status != Job_PENDING {
 		t.Fail()
 	}
 
