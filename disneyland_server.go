@@ -27,6 +27,8 @@ type DisneylandServerConfig struct {
 	DatabaseURI string `yaml:"db_uri"`
 }
 
+const maxMessageSizeInBytes = 5 * 1024 * 1024
+
 var Config *DisneylandServerConfig
 
 func getTransportCredentials() (*credentials.TransportCredentials, error) {
@@ -92,6 +94,8 @@ func main() {
 	}
 
 	s := grpc.NewServer(
+		grpc.MaxRecvMsgSize(maxMessageSizeInBytes),
+		grpc.MaxSendMsgSize(maxMessageSizeInBytes),
 		grpc.Creds(*transportCredentials),
 		grpc_middleware.WithUnaryServerChain(
 			grpc_ctxtags.UnaryServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
