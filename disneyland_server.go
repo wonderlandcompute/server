@@ -27,7 +27,7 @@ type DisneylandServerConfig struct {
 	DatabaseURI string `yaml:"db_uri"`
 }
 
-const maxMessageSizeInBytes = 5 * 1024 * 1024
+const maxMessageSizeInBytes = 5 * 1024 * 1024 * 1024
 
 var Config *DisneylandServerConfig
 
