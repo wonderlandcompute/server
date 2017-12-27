@@ -16,14 +16,15 @@ func getAuthUserFromContext(ctx context.Context) User {
 	}
 	return User{}
 }
+
 func parseCertificateFields(field string) (projectAccess string, kindAccess string, err error) {
 	fieldCopy := strings.Split(field, ".")
 	if len(fieldCopy) != 2 {
 		return "", "", grpc.Errorf(codes.DataLoss, "Error processing Organization Name")
 	}
 	return fieldCopy[0], fieldCopy[1], nil
-
 }
+
 func (s *Server) AuthFuncOverride(ctx context.Context, fullMethodName string) (context.Context, error) {
 	allowedEndpoints := map[string]bool{}
 	if allow, ok := allowedEndpoints[fullMethodName]; allow && ok {
