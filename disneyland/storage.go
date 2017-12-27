@@ -7,23 +7,30 @@ import (
 	"time"
 )
 
-const PULLINGSTRQ_1 = `WITH updatedPts AS (
-					WITH pulledPts AS (
-						SELECT id, project, kind
-						FROM jobs
-						WHERE status=$1`
-const PULLINGSTRQ_2 = ` FOR UPDATE SKIP LOCKED)
-					UPDATE jobs pts
-					SET status=$2, last_modified=$3
-					FROM pulledPts
-					WHERE pulledPts.id=pts.id AND pulledPts.project=pts.project AND pulledPts.kind=pts.kind
-					RETURNING pts.id, pts.project, pts.status, pts.metadata, pts.input, pts.output, pts.kind)
-				SELECT *
-				FROM updatedPts
-				ORDER BY id ASC;`
-const LISTSTRQ_1 = `SELECT id, project, status, metadata, input, output, kind
-				 FROM jobs
-				 WHERE`
+const PULLINGSTRQ_1 = `
+	WITH updatedPts AS (
+		WITH pulledPts AS (
+			SELECT id, project, kind
+			FROM jobs
+			WHERE status=$1
+`
+const PULLINGSTRQ_2 = `
+			FOR UPDATE SKIP LOCKED
+		)
+		UPDATE jobs pts
+		SET status=$2, last_modified=$3
+		FROM pulledPts
+		WHERE pulledPts.id=pts.id AND pulledPts.project=pts.project AND pulledPts.kind=pts.kind
+		RETURNING pts.id, pts.project, pts.status, pts.metadata, pts.input, pts.output, pts.kind
+	)
+	SELECT *
+	FROM updatedPts
+	ORDER BY id DESC;`
+const LISTSTRQ_1 = `
+	SELECT id, project, status, metadata, input, output, kind
+	FROM jobs
+	WHERE
+`
 
 type DisneylandStorageConfig struct {
 	DatabaseURI string `json:"db_uri"`
