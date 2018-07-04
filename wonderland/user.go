@@ -1,4 +1,4 @@
-package disneyland
+package wonderland
 
 type User struct {
 	Username      string

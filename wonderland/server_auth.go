@@ -1,4 +1,4 @@
-package disneyland
+package wonderland
 
 import (
 	"golang.org/x/net/context"

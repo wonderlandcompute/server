@@ -1,4 +1,4 @@
-package disneyland
+package wonderland
 
 import (
 	"testing"
@@ -13,7 +13,7 @@ func checkTestErr(err error, t *testing.T) {
 
 func TestJobCRUD(t *testing.T) {
 	initTestsConfig()
-	storage, err := NewDisneylandStorage(TestsConfig.DatabaseURI)
+	storage, err := NewWonderStorage(TestsConfig.DatabaseURI)
 	checkTestErr(err, t)
 
 	if storage == nil {

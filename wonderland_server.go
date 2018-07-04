@@ -8,7 +8,7 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	"github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/sirupsen/logrus"
-	"github.com/skygrid/disneyland/disneyland"
+	"https://github.com/wonderlandcompute/client/wonderland"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
@@ -19,7 +19,7 @@ import (
 	"os"
 )
 
-type DisneylandServerConfig struct {
+type WonderlandServerConfig struct {
 	ServerCert  string `yaml:"server_cert"`
 	ServerKey   string `yaml:"server_key"`
 	CACert      string `yaml:"ca_cert"`
@@ -29,7 +29,7 @@ type DisneylandServerConfig struct {
 
 const maxMessageSizeInBytes = 5 * 1024 * 1024 * 1024
 
-var Config *DisneylandServerConfig
+var Config *WonderlandServerConfig
 
 func getTransportCredentials() (*credentials.TransportCredentials, error) {
 	peerCert, err := tls.LoadX509KeyPair(Config.ServerCert, Config.ServerKey)
@@ -54,8 +54,8 @@ func getTransportCredentials() (*credentials.TransportCredentials, error) {
 }
 
 func main() {
-	Config = &DisneylandServerConfig{}
-	config_path := os.Getenv("DISNEYLAND_CONFIG")
+	Config = &WonderlandServerConfig{}
+	config_path := os.Getenv("WONDERLAND_CONFIG")
 	content, err := ioutil.ReadFile(config_path)
 	if err != nil {
 		log.Fatalf("Error loading config: %v", err)
@@ -66,7 +66,7 @@ func main() {
 		log.Fatalf("Error parsing config: %v", err)
 	}
 
-	storage, err := disneyland.NewDisneylandStorage(Config.DatabaseURI)
+	storage, err := wonderland.NewWonderStorage(Config.DatabaseURI)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	server := &disneyland.Server{
+	server := &wonderland.Server{
 		Storage: storage,
 	}
 
@@ -108,7 +108,7 @@ func main() {
 			grpc_auth.StreamServerInterceptor(nil),
 		),
 	)
-	disneyland.RegisterDisneylandServer(s, server)
+	wonderland.RegisterWonderServer(s, server)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)

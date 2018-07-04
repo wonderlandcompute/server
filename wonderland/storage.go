@@ -1,4 +1,4 @@
-package disneyland
+package wonderland
 
 import (
 	"database/sql"
@@ -32,18 +32,18 @@ const LISTSTRQ_1 = `
 	WHERE
 `
 
-type DisneylandStorageConfig struct {
+type WonderlandStoraStorageConfig struct {
 	DatabaseURI string `json:"db_uri"`
 }
 
-type DisneylandStorage struct {
+type WonderlanStorage struct {
 	db     *sql.DB
-	Config DisneylandStorageConfig
+	Config WonderStorageConfig
 }
 
-func NewDisneylandStorage(dbUri string) (*DisneylandStorage, error) {
-	ret := &DisneylandStorage{
-		Config: DisneylandStorageConfig{DatabaseURI: dbUri},
+func NewWonderlandStorage(dbUri string) (*WonderlandStorage, error) {
+	ret := &WonderlandStorage{
+		Config: WonderlandStorageConfig{DatabaseURI: dbUri},
 	}
 
 	err := ret.Connect()
@@ -51,7 +51,7 @@ func NewDisneylandStorage(dbUri string) (*DisneylandStorage, error) {
 	return ret, err
 }
 
-func (storage *DisneylandStorage) Connect() error {
+func (storage *WonderlandStorage) Connect() error {
 	db, err := sql.Open("postgres", storage.Config.DatabaseURI)
 	storage.db = db
 	return err
@@ -86,7 +86,7 @@ func getTime() time.Time {
 	return time.Now().UTC()
 }
 
-func (storage *DisneylandStorage) CreateJob(job *Job, creator User) (*Job, error) {
+func (storage *WonderlandStorage) CreateJob(job *Job, creator User) (*Job, error) {
 	tx, err := storage.db.Begin()
 	if err != nil {
 		return nil, err
@@ -119,7 +119,7 @@ func (storage *DisneylandStorage) CreateJob(job *Job, creator User) (*Job, error
 	return createdJob, err
 }
 
-func (storage *DisneylandStorage) GetJob(id uint64) (*Job, error) {
+func (storage *WonderlandStorage) GetJob(id uint64) (*Job, error) {
 	tx, err := storage.db.Begin()
 	if err != nil {
 		return nil, err
@@ -151,7 +151,7 @@ func (storage *DisneylandStorage) GetJob(id uint64) (*Job, error) {
 	return job, err
 }
 
-func (storage *DisneylandStorage) ListJobs(howmany uint32, project string, kind string) (*ListOfJobs, error) {
+func (storage *WonderlandStorage) ListJobs(howmany uint32, project string, kind string) (*ListOfJobs, error) {
 	var rows *sql.Rows
 	projectFlag := false
 	kindFlag := false
@@ -215,7 +215,7 @@ func (storage *DisneylandStorage) ListJobs(howmany uint32, project string, kind 
 	return ret, err
 }
 
-func (storage *DisneylandStorage) UpdateJob(job *Job) (*Job, error) {
+func (storage *WonderlandStorage) UpdateJob(job *Job) (*Job, error) {
 	tx, err := storage.db.Begin()
 	if err != nil {
 		return nil, err
@@ -259,7 +259,7 @@ func (storage *DisneylandStorage) UpdateJob(job *Job) (*Job, error) {
 	return resultJob, err
 }
 
-func (storage *DisneylandStorage) PullJobs(howmany uint32, project string, kind string) (*ListOfJobs, error) {
+func (storage *WonderlandStorage) PullJobs(howmany uint32, project string, kind string) (*ListOfJobs, error) {
 	tx, err := storage.db.Begin()
 	if err != nil {
 		return nil, err
@@ -327,7 +327,7 @@ func (storage *DisneylandStorage) PullJobs(howmany uint32, project string, kind 
 	return ret, err
 }
 
-func (storage *DisneylandStorage) DeleteJob(id uint64, userProject string) (*Job, error) {
+func (storage *WonderlaStorage) DeleteJob(id uint64, userProject string) (*Job, error) {
 	tx, err := storage.db.Begin()
 	if err != nil {
 		return nil, err

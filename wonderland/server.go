@@ -1,4 +1,4 @@
-package disneyland
+package wonderland
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 )
 
 type Server struct {
-	Storage   *DisneylandStorage
+	Storage   *WonderlandStorage
 	SecretKey []byte
 }
 
