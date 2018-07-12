@@ -8,7 +8,7 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	"github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/sirupsen/logrus"
-	"https://github.com/wonderlandcompute/client/wonderland"
+	"github.com/wonderlandcompute/server/wonderland"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
@@ -55,7 +55,7 @@ func getTransportCredentials() (*credentials.TransportCredentials, error) {
 
 func main() {
 	Config = &WonderlandServerConfig{}
-	config_path := os.Getenv("WONDERLAND_CONFIG")
+	config_path := os.Getenv("WONDERLAND_CONFIG_1")
 	content, err := ioutil.ReadFile(config_path)
 	if err != nil {
 		log.Fatalf("Error loading config: %v", err)
@@ -66,7 +66,7 @@ func main() {
 		log.Fatalf("Error parsing config: %v", err)
 	}
 
-	storage, err := wonderland.NewWonderStorage(Config.DatabaseURI)
+	storage, err := wonderland.NewWonderlandStorage(Config.DatabaseURI)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -108,7 +108,7 @@ func main() {
 			grpc_auth.StreamServerInterceptor(nil),
 		),
 	)
-	wonderland.RegisterWonderServer(s, server)
+	wonderland.RegisterWonderlandServer(s, server)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)

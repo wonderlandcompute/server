@@ -13,7 +13,7 @@ func checkTestErr(err error, t *testing.T) {
 
 func TestJobCRUD(t *testing.T) {
 	initTestsConfig()
-	storage, err := NewWonderStorage(TestsConfig.DatabaseURI)
+	storage, err := NewWonderlandStorage(TestsConfig.DatabaseURI)
 	checkTestErr(err, t)
 
 	if storage == nil {

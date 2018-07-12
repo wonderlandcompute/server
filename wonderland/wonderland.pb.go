@@ -419,7 +419,7 @@ var _Wonderland_serviceDesc = grpc.ServiceDesc{
 		},
 		{
 			MethodName: "ListJobs",
-			Handler:    _WonderlandListJobs_Handler,
+			Handler:    _Wonderland_ListJobs_Handler,
 		},
 		{
 			MethodName: "ModifyJob",

@@ -32,13 +32,13 @@ const LISTSTRQ_1 = `
 	WHERE
 `
 
-type WonderlandStoraStorageConfig struct {
+type WonderlandStorageConfig struct {
 	DatabaseURI string `json:"db_uri"`
 }
 
-type WonderlanStorage struct {
+type WonderlandStorage struct {
 	db     *sql.DB
-	Config WonderStorageConfig
+	Config WonderlandStorageConfig
 }
 
 func NewWonderlandStorage(dbUri string) (*WonderlandStorage, error) {
@@ -327,7 +327,7 @@ func (storage *WonderlandStorage) PullJobs(howmany uint32, project string, kind 
 	return ret, err
 }
 
-func (storage *WonderlaStorage) DeleteJob(id uint64, userProject string) (*Job, error) {
+func (storage *WonderlandStorage) DeleteJob(id uint64, userProject string) (*Job, error) {
 	tx, err := storage.db.Begin()
 	if err != nil {
 		return nil, err
