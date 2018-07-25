@@ -1,31 +1,19 @@
 package wonderland
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
-	"os"
 	"testing"
 )
 
-type WonderlandTestsConfig struct {
-	ClientCert  string `yaml:"client_cert"`
-	ClientKey   string `yaml:"client_key"`
-	CACert      string `yaml:"ca_cert"`
-	ConnectTo   string `yaml:"connect_to"`
-	DatabaseURI string `yaml:"db_uri"`
-}
-
-var TestsConfig *WonderlandTestsConfig
 
 func initTestsConfig() {
 	TestsConfig = &WonderlandTestsConfig{}
-	configPath := os.Getenv("WONDERLAND_TESTS_CONFIG")
+	//configPath := os.Getenv("WONDERLAND_TESTS_CONFIG")
+	configPath := "/Users/aleksandrsivcov/go/src/gitlab.com/disney/config/c_config.yaml"
 	content, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		log.Fatalf("Error loading config: %v", err)
@@ -38,26 +26,26 @@ func initTestsConfig() {
 
 }
 
-func getTransportCredentials() (*credentials.TransportCredentials, error) {
-	peerCert, err := tls.LoadX509KeyPair(TestsConfig.ClientCert, TestsConfig.ClientKey)
-	if err != nil {
-		return nil, err
-	}
-
-	caCert, err := ioutil.ReadFile(TestsConfig.CACert)
-	if err != nil {
-		return nil, err
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-
-	tc := credentials.NewTLS(&tls.Config{
-		Certificates: []tls.Certificate{peerCert},
-		RootCAs:      caCertPool,
-	})
-
-	return &tc, nil
-}
+//func getTransportCredentials() (*credentials.TransportCredentials, error) {
+//	peerCert, err := tls.LoadX509KeyPair(TestsConfig.ClientCert, TestsConfig.ClientKey)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	caCert, err := ioutil.ReadFile(TestsConfig.CACert)
+//	if err != nil {
+//		return nil, err
+//	}
+//	caCertPool := x509.NewCertPool()
+//	caCertPool.AppendCertsFromPEM(caCert)
+//
+//	tc := credentials.NewTLS(&tls.Config{
+//		Certificates: []tls.Certificate{peerCert},
+//		RootCAs:      caCertPool,
+//	})
+//
+//	return &tc, nil
+//}
 
 func checkJobsEqual(a *Job, b *Job) bool {
 	return (a.Project == b.Project) &&
@@ -145,7 +133,8 @@ func TestGRPCJobCRUD(t *testing.T) {
 		t.Fail()
 	}
 
-	pulledJobs, err := c.PullPendingJobs(ctx, &ListJobsRequest{HowMany: 1})
+	//pulledJobs, err := c.PullPendingJobs(ctx, &ListJobsRequest{HowMany: 1})
+	pulledJobs, err := c.FetchAll(ctx, &ListJobsRequest{HowMany: 1})
 	checkTestErr(err, t)
 
 	if len(pulledJobs.Jobs) != 1 {
@@ -158,4 +147,10 @@ func TestGRPCJobCRUD(t *testing.T) {
 
 	_, err = c.DeleteJob(ctx, &RequestWithId{Id: createdJob.Id})
 	checkTestErr(err, t)
+}
+
+func TestServer_FetchAll(t *testing.T) {
+	c:=Server{}
+	ctx := context.Background()
+	c.FetchAll(ctx, &ListJobsRequest{HowMany: 1})
 }

@@ -1,0 +1,16 @@
+{
+  "docker": {
+    "scheduler_type":  ["generalscheduler", "mlscheduler", "quotascheduler"],
+    "organisation": [{
+      "name":       "SHiP",
+      "quota":      "0.5"
+    }, {
+      "name":       "Monte_carlo",
+      "quota":      "0.5"
+    }]
+  },
+  "optimisation-point": {
+    "scheduler_type":  ["mlscheduler"],
+    "organisation": null
+  }
+}

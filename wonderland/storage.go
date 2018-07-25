@@ -353,3 +353,72 @@ func (storage *WonderlandStorage) DeleteJob(id uint64, userProject string) (*Job
 	}
 	return resultJob, err
 }
+
+func (storage *WonderlandStorage) FetchAll(howmany uint32, project string, kind string) (*ListOfJobs, error) {
+	tx, err := storage.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	var rows *sql.Rows
+	projectFlag := false
+	kindFlag := false
+	limitFlag := false
+	curTime := getTime()
+	inc := 4
+
+	strQuery := PULLINGSTRQ_1
+	if project != "" {
+		strQuery += " AND project=$"
+		strQuery += strconv.Itoa(inc)
+		inc++
+		projectFlag = true
+	}
+	if kind != "" {
+		strQuery += " AND kind=$"
+		strQuery += strconv.Itoa(inc)
+		inc++
+		kindFlag = true
+	}
+	if howmany != 0 {
+		strQuery += " LIMIT $"
+		strQuery += strconv.Itoa(inc)
+		inc++
+		limitFlag = true
+	}
+	strQuery += PULLINGSTRQ_2
+
+	if projectFlag {
+		if kindFlag {
+			if limitFlag {
+				rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, curTime, project, kind, howmany)
+			} else {
+				rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, curTime, project, kind)
+			}
+		} else if limitFlag {
+			rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, curTime, project, howmany)
+		} else {
+			rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, curTime, project)
+		}
+	} else if limitFlag {
+		rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, curTime, kind, howmany)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	ret, err := queryJobs(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	return ret, err
+}
+
