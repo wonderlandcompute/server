@@ -5,6 +5,7 @@ import (
 	_ "github.com/lib/pq"
 	"strconv"
 	"time"
+	"fmt"
 )
 
 const PULLINGSTRQ_1 = `
@@ -266,48 +267,35 @@ func (storage *WonderlandStorage) PullJobs(howmany uint32, project string, kind 
 	}
 
 	var rows *sql.Rows
-	projectFlag := false
-	kindFlag := false
-	limitFlag := false
 	curTime := getTime()
-	inc := 4
 
 	strQuery := PULLINGSTRQ_1
+	params := []interface{}{Job_PENDING, Job_PULLED, curTime}
+	inc := len(params) + 1
+
 	if project != "" {
 		strQuery += " AND project=$"
 		strQuery += strconv.Itoa(inc)
 		inc++
-		projectFlag = true
+		params = append(params, project)
 	}
 	if kind != "" {
 		strQuery += " AND kind=$"
 		strQuery += strconv.Itoa(inc)
 		inc++
-		kindFlag = true
+		params = append(params, kind)
 	}
 	if howmany != 0 {
 		strQuery += " LIMIT $"
 		strQuery += strconv.Itoa(inc)
 		inc++
-		limitFlag = true
+		params = append(params, fmt.Sprint(howmany))
 	}
 	strQuery += PULLINGSTRQ_2
 
-	if projectFlag {
-		if kindFlag {
-			if limitFlag {
-				rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, curTime, project, kind, howmany)
-			} else {
-				rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, curTime, project, kind)
-			}
-		} else if limitFlag {
-			rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, curTime, project, howmany)
-		} else {
-			rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, curTime, project)
-		}
-	} else if limitFlag {
-		rows, err = tx.Query(strQuery, Job_PENDING, Job_PULLED, curTime, kind, howmany)
-	}
+	fmt.Println(params)
+	rows, err = tx.Query(strQuery, params...)
+	fmt.Println(rows)
 
 	if err != nil {
 		return nil, err

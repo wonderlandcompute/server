@@ -1,0 +1,5 @@
+server_cert: "/home/igor/.wonder/credentials/127.0.0.1.crt"
+server_key: "/home/igor/.wonder/credentials/127.0.0.1.key"
+ca_cert: "/home/igor/.wonder/credentials/wonderland.crt"
+listen_on: 127.0.0.1:50051
+db_uri: postgres://user:123456789@localhost:5432/db2?sslmode=disable

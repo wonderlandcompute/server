@@ -12,6 +12,17 @@ type Server struct {
 	SecretKey []byte
 }
 
+type ServerConfig struct {
+	RepoStorage         string
+	KubeConfig          string
+	DatabaseURI         string
+	MaxMsgSizeMegabytes int
+	ServerCertPath      string
+	ServerKeyPath       string
+	CaCertPath          string
+	Port                int
+}
+
 func detailedInternalError(err error) error {
 	return grpc.Errorf(codes.Internal, fmt.Sprintf("Error processing job: %v", err))
 }

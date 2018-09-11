@@ -55,7 +55,7 @@ func getTransportCredentials() (*credentials.TransportCredentials, error) {
 
 func main() {
 	Config = &WonderlandServerConfig{}
-	config_path := os.Getenv("WONDERLAND_CONFIG_1")
+	config_path := os.Getenv("WONDERLAND2_CONFIG_SERVER")
 	content, err := ioutil.ReadFile(config_path)
 	if err != nil {
 		log.Fatalf("Error loading config: %v", err)
@@ -112,7 +112,7 @@ func main() {
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
-	log.Print("Server started")
+	log.Printf("Server started listening to %v", Config.ListenOn)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
