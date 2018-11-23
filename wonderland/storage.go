@@ -353,3 +353,41 @@ func (storage *WonderlandStorage) DeleteJob(id uint64, userProject string) (*Job
 	}
 	return resultJob, err
 }
+
+func (storage *WonderlandStorage) KillJob(id uint64, userProject string) (*Job, error) {
+	tx, err := storage.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	resultJob := &Job{}
+
+	err = tx.QueryRow(`
+		UPDATE jobs
+		SET
+			status=$1
+		WHERE id=$2 AND project=$3
+		RETURNING id, project, status, metadata, input, output, kind;`,
+		Job_KILLED,
+		id,
+		userProject,
+	).Scan(
+		&resultJob.Id,
+		&resultJob.Project,
+		&resultJob.Status,
+		&resultJob.Metadata,
+		&resultJob.Input,
+		&resultJob.Output,
+		&resultJob.Kind,
+	)
+	if err != nil {
+		return resultJob, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		return resultJob, err
+	}
+
+	return resultJob, err
+}

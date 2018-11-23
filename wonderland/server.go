@@ -120,3 +120,19 @@ func (s *Server) DeleteJob(ctx context.Context, in *RequestWithId) (*Job, error)
 
 	return ret, nil
 }
+
+func (s *Server) KillJob(ctx context.Context, in *RequestWithId) (*Job, error) {
+	user := getAuthUserFromContext(ctx)
+	// if worker - Cannot kill jobs
+	if user.IsWorker() {
+		return nil, grpc.Errorf(codes.PermissionDenied, "Workers cannot kill jobs")
+	}
+	// if user - Can kill jobs in their project
+	ret, err := s.Storage.KillJob(in.Id, user.ProjectAccess)
+	
+	if err != nil {
+		return nil, detailedInternalError(err)
+	}
+
+	return ret, nil
+}

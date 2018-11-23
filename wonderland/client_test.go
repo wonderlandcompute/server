@@ -158,4 +158,15 @@ func TestGRPCJobCRUD(t *testing.T) {
 
 	_, err = c.DeleteJob(ctx, &RequestWithId{Id: createdJob.Id})
 	checkTestErr(err, t)
+
+	//kill job
+	createdJob, err = c.CreateJob(ctx, &Job{Kind: "kill"})
+	checkTestErr(err, t)
+
+	readJob, err = c.KillJob(ctx, &RequestWithId{Id: createdJob.Id})
+	checkTestErr(err, t)
+
+	if readJob.Status != Job_KILLED {
+		t.Fail()
+	}
 }
